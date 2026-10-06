@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1f5fbf">
+  <title>INFORYZE26 - Pembayaran Kas Kelas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d2d45;
+      --muted: #6b7c94;
+      --line: #dce6f2;
+      --paper: #f4f8fd;
+      --white: #fff;
+      --green: #1f5fbf;
+      --green-light: #e7f1ff;
+      --lime: #84d7ff;
+      --orange: #f2a477;
+      --blue: #397bd3;
+      --shadow: 0 14px 38px rgba(35, 76, 130, .09);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background-color: var(--paper);
+      background-image: radial-gradient(#dce7f4 0.7px, transparent 0.7px);
+      background-size: 18px 18px;
+      color: var(--ink);
+      font-family: "DM Sans", sans-serif;
+      font-size: 14px;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      background: var(--green);
+      color: #fff;
+      padding: 18px max(24px, calc((100vw - 1200px) / 2));
+      position: relative;
+      overflow: hidden;
+    }
+    .topbar::after {
+      content: "";
+      position: absolute;
+      width: 360px;
+      height: 180px;
+      right: 8%;
+      top: -126px;
+      border: 1px solid rgba(132, 215, 255, .24);
+      border-radius: 50%;
+      box-shadow: 0 0 0 24px rgba(132, 215, 255, .05), 0 0 0 49px rgba(132, 215, 255, .04);
+      pointer-events: none;
+    }
+    .topbar-inner, .brand, .top-actions { display: flex; align-items: center; }
+    .topbar-inner { justify-content: space-between; position: relative; z-index: 1; }
+    .brand { gap: 12px; }
+    .top-nav { display: flex; gap: 5px; margin-left: auto; margin-right: 24px; }
+    .nav-button { border: 1px solid transparent; border-radius: 7px; padding: 9px 12px; background: transparent; color: #c8d9ef; font-weight: 700; }
+    .nav-button.active { background: #2c68b4; color: #fff; }
+    .nav-button:hover { color: #fff; }
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      color: var(--green);
+      background: var(--lime);
+      border-radius: 13px 13px 13px 4px;
+      font: 700 17px "Space Grotesk", sans-serif;
+      transform: rotate(-4deg);
+    }
+    .brand-name { font: 700 19px "Space Grotesk", sans-serif; letter-spacing: 0; }
+    .brand-caption { color: #bfd3ea; font-size: 12px; margin-top: 2px; }
+    .top-actions { gap: 12px; }
+    .period-wrap, .class-wrap { display: grid; gap: 4px; }
+    .class-wrap[hidden] { display: none !important; }
+    .period-wrap label, .class-wrap label { color: #bfd3ea; font-size: 10px; text-transform: uppercase; }
+    .period-wrap select, .class-wrap select {
+      min-width: 150px;
+      padding: 7px 28px 7px 10px;
+      background: #17477f;
+      color: #fff;
+      border: 1px solid #4774a8;
+      border-radius: 7px;
+      outline: none;
+    }
+    .page { max-width: 1200px; margin: 0 auto; padding: 34px 24px 60px; }
+    .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: linear-gradient(145deg, #e6f0ff, #f4f8fd 55%, #e5f5f0); }
+    .login-panel { width: min(420px, 100%); padding: 30px; background: #fff; border: 1px solid var(--line); border-radius: 11px; box-shadow: var(--shadow); }
+    .login-panel h1 { margin: 22px 0 7px; font-size: 27px; }
+    .login-copy { color: var(--muted); margin-bottom: 22px; }
+    .login-error { min-height: 18px; margin-top: 8px; color: #a64d40; font-size: 12px; }
+    .login-submit { width: 100%; margin-top: 16px; }
+    .role-password[hidden] { display: none !important; }
+    .role-indicator { color: #d4e3f5; font-size: 11px; white-space: nowrap; }
+    .logout-button { border-color: #4774a8; background: #17477f; color: #fff; }
+    [hidden] { display: none !important; }
+    .topup-view { animation: row-in .25s ease both; }
+    .topup-heading { margin: 9px 0 24px; }
+    .topup-heading h1 { margin-top: 7px; }
+    .topup-heading p { color: var(--muted); margin-top: 8px; }
+    .topup-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .75fr); gap: 20px; align-items: start; }
+    .topup-form, .checkout-panel { background: #fff; border: 1px solid var(--line); border-radius: 11px; box-shadow: var(--shadow); }
+    .topup-form { padding: 23px; }
+    .topup-step { display: flex; align-items: center; gap: 9px; margin: 0 0 15px; font: 600 16px "Space Grotesk", sans-serif; }
+    .step-number { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; background: #e6f0ff; color: #245da6; font: 700 11px "DM Sans", sans-serif; }
+    .topup-field { margin-bottom: 22px; }
+    .topup-field label, .payment-label { display: block; color: #4c627e; font-size: 11px; font-weight: 700; margin-bottom: 8px; }
+    .topup-select, .topup-input { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink); padding: 0 11px; outline: none; }
+    .topup-select:focus, .topup-input:focus { border-color: #6b9cda; box-shadow: 0 0 0 3px rgba(47, 111, 194, .13); }
+    .amount-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .amount-option { min-height: 42px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: #4c627e; font-weight: 700; font-size: 12px; }
+    .amount-option:hover, .amount-option.selected { border-color: var(--green); color: var(--green); background: #eff6ff; }
+    .custom-amount { display: none; margin-top: 9px; }
+    .custom-amount.visible { display: block; }
+    .payment-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .payment-option { position: relative; }
+    .payment-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .payment-option span { min-height: 68px; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; color: #405875; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .payment-option small { color: var(--muted); font-size: 10px; font-weight: 400; }
+    .payment-option input:checked + span { border-color: var(--green); background: #eff6ff; box-shadow: inset 0 0 0 1px var(--green); }
+    .payment-option input:focus-visible + span { outline: 3px solid rgba(47, 111, 194, .2); }
+    .topup-submit { width: 100%; min-height: 44px; margin-top: 20px; font-size: 13px; }
+    .checkout-panel { padding: 21px; }
+    .checkout-panel h2 { font-size: 17px; }
+    .checkout-total { padding: 18px 0; margin: 10px 0 13px; border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); }
+    .checkout-total-label { color: var(--muted); font-size: 11px; }
+    .checkout-total-value { margin-top: 5px; font: 600 26px "Space Grotesk", sans-serif; }
+    .summary-row { display: flex; justify-content: space-between; gap: 10px; margin: 11px 0; color: var(--muted); font-size: 11px; }
+    .summary-row strong { color: var(--ink); text-align: right; }
+    .secure-note { display: flex; gap: 8px; margin-top: 19px; padding: 11px; border-radius: 7px; background: #eff5fd; color: #536982; font-size: 10px; line-height: 1.5; }
+    .checkout-result { display: none; margin-top: 16px; padding: 15px; border: 1px solid #dce8f7; border-radius: 8px; background: #f7faff; }
+    .checkout-result.visible { display: block; }
+    .invoice-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .invoice-status strong { font-size: 12px; }
+    .invoice-badge { border-radius: 20px; padding: 5px 8px; background: #fff1d8; color: #936315; font-size: 10px; font-weight: 700; }
+    .invoice-code { color: #536982; font-size: 10px; }
+    .invoice-code strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .invoice-instruction { margin: 11px 0; color: #526781; font-size: 11px; line-height: 1.55; }
+    .demo-warning { color: #8d5d21; font-size: 10px; line-height: 1.5; margin: 10px 0; }
+    .qris-payment { margin: 13px 0; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: #fff; text-align: center; }
+    .qris-title { color: var(--ink); font-size: 11px; font-weight: 700; }
+    .qris-code { width: min(100%, 300px); aspect-ratio: 874 / 1240; margin: 10px auto 8px; overflow: hidden; background: #fff; }
+    .qris-code img { display: block; width: 100%; height: auto; }
+    .qris-caption { color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .dashboard-view[hidden], .expense-view[hidden], .overall-view[hidden], .topup-view[hidden], .dashboard-only[hidden] { display: none !important; }
+    .welcome-row { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 25px; }
+    .eyebrow { color: #4773a8; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    h1, h2, p { margin: 0; }
+    h1 { margin-top: 5px; font: 600 30px/1.15 "Space Grotesk", sans-serif; letter-spacing: 0; }
+    .welcome-copy { color: var(--muted); margin-top: 7px; }
+    .dues-control { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+    .dues-control label { color: var(--muted); font-size: 12px; }
+    .dues-input-wrap { position: relative; }
+    .dues-input-wrap span { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+    .dues-input {
+      width: 142px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 9px 10px 9px 35px;
+      color: var(--ink);
+      outline: none;
+    }
+    .dues-input:focus, .search-input:focus, .field input:focus { border-color: #6b9cda; box-shadow: 0 0 0 3px rgba(47, 111, 194, .13); }
+    .metrics {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr 1fr;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .metric { min-height: 132px; padding: 20px 23px; position: relative; }
+    .metric + .metric { border-left: 1px solid var(--line); }
+    .metric-label { color: var(--muted); font-size: 12px; }
+    .metric-value { margin-top: 10px; font: 600 27px "Space Grotesk", sans-serif; letter-spacing: 0; }
+    .metric-note { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; margin-top: 7px; }
+    .metric-note strong { color: var(--green); font-weight: 700; }
+    .progress { height: 5px; background: #dce8f7; border-radius: 9px; overflow: hidden; margin-top: 12px; }
+    .progress > span { display: block; height: 100%; width: 0; background: var(--green); border-radius: inherit; transition: width .35s ease; }
+    .metric.accent { background: var(--green); color: #fff; }
+    .metric.accent .metric-label, .metric.accent .metric-note { color: #c3d8f1; }
+    .metric.accent .metric-note strong { color: var(--lime); }
+    .metric.accent .progress { background: #3972b7; }
+    .metric.accent .progress > span { background: var(--lime); }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 0 13px; }
+    .section-title { display: flex; align-items: baseline; gap: 9px; }
+    .expense-head-actions { display: flex; align-items: center; gap: 14px; }
+    .expense-total { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .expense-total strong { margin-left: 4px; color: var(--ink); font: 600 16px "Space Grotesk", sans-serif; }
+    h2 { font: 600 18px "Space Grotesk", sans-serif; letter-spacing: 0; }
+    .count { color: var(--muted); font-size: 12px; }
+    .toolbar { display: flex; gap: 9px; align-items: center; }
+    .search { position: relative; }
+    .search::before { content: ""; width: 11px; height: 11px; border: 1.5px solid #8294aa; border-radius: 50%; position: absolute; left: 12px; top: 11px; }
+    .search::after { content: ""; width: 5px; height: 1.5px; background: #8294aa; position: absolute; left: 22px; top: 23px; transform: rotate(45deg); }
+    .search-input, .filter-select {
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+    .search-input { width: 205px; padding: 0 10px 0 34px; }
+    .filter-select { padding: 0 28px 0 10px; }
+    .button {
+      min-height: 36px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      font-weight: 700;
+      transition: transform .15s ease, background .15s ease;
+    }
+    .button:hover { transform: translateY(-1px); }
+    .button-primary { background: var(--green); color: #fff; }
+    .button-primary:hover { background: #174b96; }
+    .button-light { background: #fff; border-color: var(--line); color: var(--ink); }
+    .button-light:hover { background: #f2f7fd; }
+    .button-small { min-height: 30px; padding: 0 10px; font-size: 11px; }
+    .table-shell { background: #fff; border: 1px solid var(--line); border-radius: 11px; box-shadow: var(--shadow); overflow: hidden; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; min-width: 660px; border-collapse: collapse; text-align: left; }
+    thead { background: #f5f8fc; }
+    th { color: #71829a; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 12px 18px; }
+    td { padding: 13px 18px; border-top: 1px solid #e8eef6; vertical-align: middle; }
+    tbody tr { animation: row-in .28s ease both; }
+    tbody tr:hover { background: #f8fbff; }
+    @keyframes row-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .student-cell { display: flex; align-items: center; gap: 11px; }
+    .avatar { width: 33px; height: 33px; display: grid; place-items: center; border-radius: 10px; background: #e6f0ff; color: #245da6; font-weight: 700; font-size: 12px; flex: 0 0 auto; }
+    .student-name { font-weight: 700; }
+    .student-sub { color: #8391a5; font-size: 11px; margin-top: 3px; }
+    .status { display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; padding: 5px 9px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status-paid { color: #317449; background: #e7f4e9; }
+    .status-partial { color: #9b6a17; background: #fbf1d9; }
+    .status-unpaid { color: #a65d4e; background: #faeae5; }
+    .amount-main { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .amount-sub { color: #8391a5; font-size: 11px; margin-top: 3px; }
+    .row-actions { display: flex; justify-content: flex-end; align-items: center; gap: 7px; }
+    .text-button { border: 0; background: transparent; color: #3567a3; padding: 6px 2px; font-size: 11px; font-weight: 700; }
+    .text-button:hover { color: #1f4d83; text-decoration: underline; }
+    .empty-state { display: none; color: var(--muted); text-align: center; padding: 38px 16px; }
+    .empty-state strong { display: block; color: var(--ink); margin-bottom: 5px; }
+    .table-foot { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    .table-foot strong { color: var(--ink); }
+    .note { margin-top: 17px; color: #73839a; font-size: 11px; }
+    .note strong { color: #46668e; }
+    dialog {
+      width: min(460px, calc(100% - 28px));
+      max-height: min(88vh, 760px);
+      border: 0;
+      border-radius: 12px;
+      padding: 0;
+      color: var(--ink);
+      box-shadow: 0 24px 80px rgba(20, 48, 83, .25);
+    }
+    dialog::backdrop { background: rgba(17, 37, 67, .45); backdrop-filter: blur(2px); }
+    .dialog-head { padding: 20px 22px 15px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-start; }
+    .dialog-head h2 { font-size: 20px; }
+    .dialog-head p { color: var(--muted); margin-top: 5px; font-size: 12px; }
+    .close-button { border: 0; background: #eff4fb; border-radius: 7px; width: 30px; height: 30px; color: #536982; font-size: 19px; line-height: 1; }
+    .dialog-body { padding: 18px 22px 22px; }
+    .field { display: grid; gap: 6px; margin-bottom: 13px; }
+    .field label { color: #4c627e; font-size: 11px; font-weight: 700; }
+    .field input { width: 100%; height: 40px; border: 1px solid var(--line); border-radius: 7px; padding: 0 11px; outline: none; }
+    .field-hint { color: var(--muted); font-size: 10px; margin-top: -2px; }
+    .name-error { color: #a64d40; }
+    .field textarea { width: 100%; min-height: 92px; border: 1px solid var(--line); border-radius: 7px; padding: 10px 11px; outline: none; resize: vertical; }
+    .field textarea:focus { border-color: #6b9cda; box-shadow: 0 0 0 3px rgba(47, 111, 194, .13); }
+    .expense-empty { color: var(--muted); text-align: center; padding: 24px 18px; }
+    .expense-note { min-width: 180px; white-space: normal; }
+    .delete-expense { border: 0; background: transparent; color: #ae6653; font-size: 10px; font-weight: 700; padding: 5px; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+    .history { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 15px; }
+    .history-title { display: flex; justify-content: space-between; align-items: center; color: #4d637e; font-size: 11px; font-weight: 700; margin-bottom: 7px; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-top: 1px solid #e8eef6; font-size: 11px; }
+    .history-item time { display: block; color: var(--muted); margin-top: 3px; }
+    .delete-payment { border: 0; background: transparent; color: #ae6653; font-size: 10px; font-weight: 700; padding: 5px; }
+    .toast { position: fixed; z-index: 4; right: 22px; bottom: 22px; padding: 12px 16px; background: var(--green); color: #fff; border-radius: 8px; box-shadow: var(--shadow); font-size: 12px; opacity: 0; transform: translateY(12px); pointer-events: none; transition: .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 700px) {
+      .login-panel { padding: 23px; }
+      .topbar { padding: 15px 18px; }
+      .topbar::after { right: -230px; }
+      .topbar-inner { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+      .top-nav { order: 3; width: 100%; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .expense-head-actions { width: 100%; justify-content: space-between; }
+      .top-actions { order: 2; margin-left: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .brand-caption { display: none; }
+      .period-wrap select, .class-wrap select { width: 100%; min-width: 0; font-size: 12px; }
+      .page { padding: 27px 16px 44px; }
+      .topup-layout { grid-template-columns: 1fr; }
+      .topup-form { padding: 18px; }
+      .checkout-panel { padding: 18px; }
+      .amount-options { grid-template-columns: repeat(2, 1fr); }
+      .payment-options { grid-template-columns: 1fr; }
+      .payment-option span { min-height: 54px; }
+      .welcome-row { align-items: flex-start; flex-direction: column; margin-bottom: 18px; }
+      h1 { font-size: 27px; }
+      .dues-control { width: 100%; justify-content: space-between; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .metric { min-height: 112px; padding: 16px; }
+      .metric:first-child { grid-column: 1 / -1; }
+      .metric + .metric { border-left: 0; }
+      .metric:nth-child(2) { border-top: 1px solid var(--line); }
+      .metric:nth-child(3) { border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+      .metric-value { font-size: 23px; }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .toolbar { width: 100%; flex-wrap: wrap; }
+      .search { flex: 1 1 150px; }
+      .search-input { width: 100%; }
+      .filter-select { flex: 1 1 115px; }
+      .toolbar .button { flex: 0 0 auto; }
+      .table-foot { align-items: flex-start; gap: 8px; flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <section class="login-screen" id="login-screen" aria-labelledby="login-title">
+    <form class="login-panel" id="login-form">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">K</div>
+        <div><div class="brand-name">INFORYZE</div><div class="brand-caption" style="color:var(--muted)">Catatan kas angkatan</div></div>
+      </div>
+      <h1 id="login-title">Masuk ke INFORYZE26</h1>
+      <p class="login-copy">Pilih peran untuk melanjutkan.</p>
+      <div class="field">
+        <label for="login-role">Masuk sebagai</label>
+        <select id="login-role" required>
+          <option value="mahasiswa">Mahasiswa</option>
+          <option value="pengelola">Pengelola</option>
+        </select>
+      </div>
+      <div class="field role-password" id="manager-password-field" hidden>
+        <label for="manager-password">Password pengelola</label>
+        <input id="manager-password" type="password" autocomplete="current-password" placeholder="Masukkan password">
+      </div>
+      <p class="login-error" id="login-error" role="alert" aria-live="polite"></p>
+      <button class="button button-primary login-submit" type="submit">Masuk</button>
+    </form>
+  </section>
+  <div id="app-shell" hidden>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">K</div>
+        <div>
+          <div class="brand-name">INFORYZE</div>
+          <div class="brand-caption">Catatan kas angkatan</div>
+        </div>
+      </div>
+      <nav class="top-nav" aria-label="Navigasi utama">
+        <button class="nav-button active" id="topup-tab" type="button" aria-current="page" hidden>Isi Kas</button>
+        <button class="nav-button manager-only" id="dashboard-tab" type="button" hidden>Pemasukan</button>
+        <button class="nav-button manager-only" id="expense-tab" type="button" hidden>Pengeluaran</button>
+        <button class="nav-button manager-only" id="overall-tab" type="button" hidden>Saldo Keseluruhan</button>
+      </nav>
+      <div class="top-actions">
+        <span class="role-indicator" id="role-indicator"></span>
+        <button class="button button-small logout-button" id="logout-button" type="button">Keluar</button>
+        <div class="class-wrap">
+          <label for="class-select">Pilih kelas</label>
+          <select id="class-select" aria-label="Pilih kelas"></select>
+        </div>
+        <div class="period-wrap dashboard-only" hidden>
+          <label for="period">Periode pembayaran</label>
+          <select id="period" aria-label="Periode pembayaran"></select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="topup-view" id="topup-view" aria-labelledby="topup-title">
+      <div class="topup-heading">
+        <div class="eyebrow">Pembayaran mandiri</div>
+        <h1 id="topup-title">Isi kas kelasmu</h1>
+        <p>Pilih identitas, tentukan nominal, lalu selesaikan pembayaran.</p>
+      </div>
+      <div class="topup-layout">
+        <form class="topup-form" id="topup-form">
+          <div class="topup-step"><span class="step-number">1</span> Isi nama mahasiswa</div>
+          <div class="topup-field">
+            <label for="topup-student">Nama mahasiswa</label>
+            <input class="topup-input" id="topup-student" type="text" autocomplete="off" maxlength="80" placeholder="Ketik nama lengkap" required>
+            <p class="field-hint name-error" id="topup-name-error" role="status" aria-live="polite" hidden></p>
+          </div>
+          <div class="topup-step"><span class="step-number">2</span> Pilih nominal</div>
+          <div class="topup-field">
+            <span class="payment-label">Nominal pembayaran kas</span>
+            <div class="amount-options" role="group" aria-label="Pilih nominal top up">
+              <button class="amount-option selected" type="button" data-amount="10000">Rp10000</button>
+              <button class="amount-option" type="button" data-amount="20000">Rp20000</button>
+              <button class="amount-option" type="button" data-amount="50000">Rp50000</button>
+              <button class="amount-option" type="button" data-amount="custom">Nominal lain</button>
+            </div>
+            <div class="custom-amount" id="custom-amount-wrap"><label for="topup-amount">Masukkan nominal (Rp)</label><input class="topup-input" id="topup-amount" type="number" min="1000" step="1000" inputmode="numeric" placeholder="Minimal Rp1.000"></div>
+          </div>
+          <div class="topup-step"><span class="step-number">3</span> Bayar menggunakan QRIS</div>
+          <p class="qris-caption">Kode QR dan petunjuk pembayaran akan tampil setelah tagihan dibuat.</p>
+          <button class="button button-primary topup-submit" type="submit">Buat pembayaran <span aria-hidden="true">→</span></button>
+        </form>
+        <aside class="checkout-panel" aria-label="Ringkasan top up">
+          <h2>Ringkasan pembayaran</h2>
+          <div class="checkout-total"><div class="checkout-total-label">Total pembayaran</div><div class="checkout-total-value" id="topup-total">Rp10.000</div></div>
+          <div class="summary-row"><span>Kelas</span><strong id="summary-class">Kelas A</strong></div>
+          <div class="summary-row"><span>Mahasiswa</span><strong id="summary-student">Belum dipilih</strong></div>
+          <div class="summary-row"><span>Metode</span><strong id="summary-method">QRIS</strong></div>
+          <div class="secure-note"><span aria-hidden="true">i</span><span>QRIS ini terdaftar atas nama Mukena. Pastikan nama penerima dan nominal sebelum membayar.</span></div>
+          <div class="checkout-result" id="checkout-result" aria-live="polite"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="dashboard-view" id="dashboard-view" hidden>
+    <section class="welcome-row" aria-labelledby="page-title">
+      <div>
+        <div class="eyebrow">Buku kas digital</div>
+        <h1 id="page-title">Kas Kelas A</h1>
+        <p class="welcome-copy">Pantau iuran bulanan untuk 32 mahasiswa.</p>
+      </div>
+      <div class="dues-control">
+        <label for="monthly-dues">Iuran per mahasiswa</label>
+        <div class="dues-input-wrap"><span>Rp</span><input class="dues-input" id="monthly-dues" type="number" min="0" step="1000" inputmode="numeric" aria-label="Nominal iuran per mahasiswa"></div>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Ringkasan pembayaran">
+      <div class="metric accent">
+        <div class="metric-label">Kas terkumpul</div>
+        <div class="metric-value" id="collected-total">Rp0</div>
+        <div class="metric-note"><strong id="paid-count">0 dari 0 lunas</strong><span id="rate-label">pembayaran bulan ini</span></div>
+        <div class="progress" aria-label="Persentase kas terkumpul"><span id="collection-progress"></span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Target bulan ini</div>
+        <div class="metric-value" id="target-total">Rp0</div>
+        <div class="metric-note"><strong id="student-count">32 mahasiswa</strong><span>terdaftar</span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Belum terkumpul</div>
+        <div class="metric-value" id="remaining-total">Rp0</div>
+        <div class="metric-note"><strong id="outstanding-count">0 mahasiswa</strong><span>belum lunas</span></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="students-heading">
+      <div class="section-head">
+        <div class="section-title"><h2 id="students-heading">Daftar mahasiswa</h2><span class="count" id="visible-count"></span></div>
+        <div class="toolbar">
+          <div class="search"><input class="search-input" id="search" type="search" placeholder="Cari nama mahasiswa..." aria-label="Cari nama mahasiswa"></div>
+          <select class="filter-select" id="status-filter" aria-label="Filter status">
+            <option value="all">Semua status</option>
+            <option value="unpaid">Belum bayar</option>
+            <option value="partial">Cicilan</option>
+            <option value="paid">Lunas</option>
+          </select>
+          <button class="button button-light" id="export-button" type="button">Unduh CSV</button>
+        </div>
+      </div>
+      <div class="table-shell">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th scope="col">Nama mahasiswa</th><th scope="col">Status</th><th scope="col">Pembayaran</th><th scope="col" style="text-align:right">Aksi</th></tr>
+            </thead>
+            <tbody id="student-rows"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state"><strong>Belum ada mahasiswa yang cocok</strong>Coba ubah kata pencarian atau filter status.</div>
+        </div>
+        <div class="table-foot"><span>Menampilkan <strong id="shown-total">0 mahasiswa</strong></span><span>Periode: <strong id="period-label">-</strong></span></div>
+      </div>
+      <p class="note"><strong>Catatan:</strong> Data tersimpan di browser ini. Unduh CSV secara berkala sebagai salinan.</p>
+    </section>
+    </section>
+
+    <section class="expense-view" id="expense-view" hidden aria-labelledby="expenses-page-title">
+      <div class="welcome-row"><div><div class="eyebrow">Pengelolaan kas</div><h1 id="expenses-page-title">Pengeluaran kas</h1><p class="welcome-copy">Catat dan pantau penggunaan uang kas kelas.</p></div></div>
+      <section class="metrics cashflow-metrics" aria-label="Ringkasan pengeluaran kelas">
+        <div class="metric accent"><div class="metric-label">Total pengeluaran</div><div class="metric-value" id="class-expense-total">Rp0</div><div class="metric-note"><span id="class-expense-count">0 catatan</span></div></div>
+        <div class="metric"><div class="metric-label">Pemasukan kelas</div><div class="metric-value" id="class-income-total">Rp0</div><div class="metric-note"><span>Periode terpilih</span></div></div>
+        <div class="metric"><div class="metric-label">Saldo kelas</div><div class="metric-value" id="class-cash-balance">Rp0</div><div class="metric-note"><span>Pemasukan dikurangi pengeluaran</span></div></div>
+      </section>
+      <section aria-labelledby="expenses-heading">
+        <div class="section-head"><div class="section-title"><h2 id="expenses-heading">Riwayat pengeluaran</h2></div><button class="button button-primary" id="add-expense-button" type="button"><span aria-hidden="true">+</span> Catat pengeluaran</button></div>
+        <div class="table-shell"><div class="table-scroll"><table>
+          <thead><tr><th scope="col">Tanggal</th><th scope="col">Catatan</th><th scope="col" style="text-align:right">Jumlah</th><th scope="col" style="text-align:right">Aksi</th></tr></thead>
+          <tbody id="expense-rows"></tbody>
+        </table></div></div>
+      </section>
+    </section>
+
+    <section class="overall-view" id="overall-view" hidden aria-labelledby="overall-title">
+      <div class="welcome-row"><div><div class="eyebrow">Rekap seluruh kelas</div><h1 id="overall-title">Saldo keseluruhan</h1><p class="welcome-copy">Gabungan pemasukan dan pengeluaran dari semua kelas.</p></div></div>
+      <section class="metrics cashflow-metrics" aria-label="Ringkasan saldo seluruh kelas">
+        <div class="metric accent"><div class="metric-label">Saldo kas tersedia</div><div class="metric-value" id="overall-balance-total">Rp0</div><div class="metric-note"><span>Pemasukan dikurangi pengeluaran</span></div></div>
+        <div class="metric"><div class="metric-label">Total pemasukan</div><div class="metric-value" id="overall-income-total">Rp0</div><div class="metric-note"><span id="overall-income-count">0 transaksi</span></div></div>
+        <div class="metric"><div class="metric-label">Total pengeluaran</div><div class="metric-value" id="overall-expense-total">Rp0</div><div class="metric-note"><span id="overall-expense-count">0 catatan</span></div></div>
+      </section>
+      <section aria-labelledby="overall-income-heading">
+        <div class="section-head"><div class="section-title"><h2 id="overall-income-heading">Pemasukan gabungan</h2></div></div>
+        <div class="table-shell"><div class="table-scroll"><table>
+          <thead><tr><th scope="col">Tanggal</th><th scope="col">Kelas</th><th scope="col">Pembayar</th><th scope="col" style="text-align:right">Jumlah</th></tr></thead>
+          <tbody id="overall-income-rows"></tbody>
+        </table></div></div>
+      </section>
+      <section aria-labelledby="overall-expense-heading" style="margin-top:24px">
+        <div class="section-head"><div class="section-title"><h2 id="overall-expense-heading">Pengeluaran gabungan</h2></div></div>
+        <div class="table-shell"><div class="table-scroll"><table>
+          <thead><tr><th scope="col">Tanggal</th><th scope="col">Kelas</th><th scope="col">Catatan</th><th scope="col" style="text-align:right">Jumlah</th></tr></thead>
+          <tbody id="overall-expense-rows"></tbody>
+        </table></div></div>
+      </section>
+    </section>
+  </main>
+  </div>
+
+  <dialog id="payment-dialog" aria-labelledby="payment-title">
+    <div>
+      <div class="dialog-head">
+        <div><h2 id="payment-title">Riwayat pembayaran</h2><p id="payment-subtitle"></p></div>
+        <button class="close-button" type="button" data-close aria-label="Tutup">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="history"><div class="history-title"><span>Riwayat periode ini</span><span id="history-total"></span></div><div id="payment-history"></div></div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="expense-dialog" aria-labelledby="expense-title">
+    <form id="expense-form">
+      <div class="dialog-head"><div><h2 id="expense-title">Catat pengeluaran</h2><p>Pengeluaran disimpan untuk kelas dan periode yang dipilih.</p></div><button class="close-button" type="button" data-close aria-label="Tutup">&times;</button></div>
+      <div class="dialog-body">
+        <div class="field"><label for="expense-amount">Jumlah pengeluaran</label><input id="expense-amount" type="number" min="1" step="1" inputmode="numeric" placeholder="Rp" required></div>
+        <div class="field"><label for="expense-note">Catatan pengeluaran</label><textarea id="expense-note" maxlength="180" rows="3" placeholder="Contoh: Konsumsi kegiatan kelas" required></textarea></div>
+        <div class="dialog-actions"><button class="button button-light" type="button" data-close>Batal</button><button class="button button-primary" type="submit">Simpan pengeluaran</button></div>
+      </div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (async () => {
+      const STORAGE_KEY = "kaskita-class-data-v1";
+      const CLASS_NAMES = ["A", "B", "C", "D", "E", "F", "G"];
+      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+      const colors = ["#e6f0ff", "#dcecff", "#e8f4ff", "#dce8fa", "#edf5ff", "#e2f1fb"];
+      const now = new Date();
+      const periodInput = document.querySelector("#period");
+      const classInput = document.querySelector("#class-select");
+      const duesInput = document.querySelector("#monthly-dues");
+      const searchInput = document.querySelector("#search");
+      const filterInput = document.querySelector("#status-filter");
+      const paymentDialog = document.querySelector("#payment-dialog");
+      const expenseDialog = document.querySelector("#expense-dialog");
+      const topupStudentInput = document.querySelector("#topup-student");
+      const loginRoleInput = document.querySelector("#login-role");
+      const managerPasswordInput = document.querySelector("#manager-password");
+      let currentRole = null;
+      let selectedTopupAmount = 10000;
+      let pendingInvoice = null;
+      let activeStudentId = null;
+      let toastTimeout;
+
+      const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const periodText = (key) => {
+        const [year, month] = key.split("-").map(Number);
+        return `${monthNames[month - 1]} ${year}`;
+      };
+      const formatRupiah = (amount) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount || 0);
+      const localDateTimeInput = (date = new Date()) => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      const escapeHTML = (value) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+      const makeId = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const apiRequest = async (url, options = {}) => {
+        const response = await fetch(url, {
+          ...options,
+          headers: { "Content-Type": "application/json", ...options.headers }
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Permintaan ke server gagal.");
+        return payload;
+      };
+
+      const STUDENT_NAMES_BY_CLASS = {
+        A: ["Aldy Alfiansyah", "Alwan Satria Gandi", "Anggi Afifah Khairun Nisa", "Arkan Chalifa Turrahman", "Azurra Azhar Abdilah", "Bagus Tegar Gunawan", "Dhiya Riyanti Salsabila Kamiil", "Dinah Nur Oktaviani", "Fadhlan Yughnihimullah", "Farisya Afkaar Firjatullah", "Ikhsan Syahrul Zamil", "Ilham Septian Nurhidayat", "Imam Husnul Ma’ab", "Indra Semesta", "Jovita Tita Bilqis", "Kameela Jibrillafly", "Kayla Cahaya Kamila", "Khoirin Nisa Amalia", "Lintang Dwi Octaviani", "Muhammad Darma Panalar", "Muhammad Farrel Ihsanuddin Gunawan", "M. Valda Valensi Sabala", "Nadhira Nurul Ulfah", "Nadif Ahmad Fahrial", "Nurul Riva Rahdianti", "Rafi Akhdan Winata", "Raisa Hanipah Soleha", "Rizki Sudiman Ramdhan", "Rizky Pratama", "Uvi Nuraeni", "Winda Nur Fadilah", "Youhan Nelja Haezer"],
+        B: ["Ajli Alif Wilantara", "Alam Maulana Ishak", "Aldi Muhamad Alfaisi", "Alpi Khoerul Umam", "Annisa Zannati Qalbiah", "Arief Maulana Rizki", "Athar Emeraldy Firmansyah", "Ayu Sri Mulyana", "Azril Riyanto Valentino", "Cita Nastiti", "Fachry Rizky Faturrohman", "Fahri Ahmadurrohman", "Fahri Zaelani Sidiq", "Fawaz Zahran", "Gilang Nugraha Munggaran", "Ikhsan Yazid Al Islah", "Irga Mochamad Rafly", "Jelita Triwulandari", "Kirana Gumilangsari", "Muhaimin Ilham", "Muhamad Rispan Hendrawan", "Muhammad Azdi Jistani", "Muhammad Rafiq Raheesh", "Musthofainal Akhyar Latif", "Raden Muhammad Khalifatunnashir", "Rafli Rafael Paisha", "Rifki Sahwal Maulana Malik", "Sandi Muhammad Rizki", "Thifal Azki Hartian", "Yusuf Manshur Awaluddin", "Zulfa Ainun Najib"],
+        C: ["Abdul Azis Bagaskara", "Adnan Fatwa Alamsyah", "Ajrina Nurzihan Musadad", "Alip Raply", "Anindi Nurmaleka", "Dwi Puspa Amelia", "Fahri Fauzira", "Fahri Januar Pratama", "Fathan Jamil", "Fiki Fathiril Haq", "Hadi Nur Cahaya", "Haura Rabina Arifah", "Hirzan Khairurrizal Ahza", "Hisyam Makki Lazuardi", "Ibnu Farrel Mufaza", "Miseri Cordias Domini M", "Mohammad Keanu Raadhia Fasya", "Muhamad Alief Rievan Ruhaniyah", "Muhamad Amin Al Faruq", "Mochammad Fauzan Rizaldy", "Muhammad Daris Ghifari", "Muhammad Farrel Fachridho Suherlan", "Muhammad Fikri Haikal", "Nanda Ahmad Hanani", "Radhitya Fauzana Rasyid", "Rayhan Riski Rahayu", "Risma Ajri Alpiyani", "Sabrina Putri Aprilia", "Selfia Maulida", "Sidiq Fathoni", "Wisnu"],
+        D: ["Aditya Dwi Putra", "Alan Kurniawan", "Alfi Hiyarrunnisa", "Aliya Zahra", "Defnika Adistya Fadianti", "Dwimas Miftahurizqi", "Efqi 'Asykarullah", "Ekhy Radithia Pratama Rizki", "Erlangga Langit Ramadhan", "Fadhlan Akifan Syadid", "Farhan Hidayatulloh", "Mirwan Zahrul Fuady", "Muhamad Fadli Hasybi Nur", "Muhammad Galih Juliansyah", "Muhamad Ridhwan", "Muhammad Rafli Rizqi Ramdani", "Muhammad Rifqi Ramdhani", "Muhamad Rizqi Pratama", "Muhammad Syava Argiean", "Nabil Faidul Alam Noor", "Naiela Dewi Zahra", "Nita Nurlaila Khoerunnisa", "Rayhan Destiar Al-Sabiq", "Reza Sapitra", "Riani Gia Iskandar", "Robby Ilman Akbar", "Sheima Sahra Fadilla", "Syahdan Naufal Fauzani", "Zidhan Fadillah Haikal"],
+        E: ["Ahmad Agam Muzzaki", "Alya Alawiyah", "Anwar Musad'dad", "Arsharizka Nanda Hermanto", "Azril Fitri Nurfadillah", "Bintan Milandani", "Daffa Haikal Faa'iz", "Dian Pransisca Nurcahyani", "Dias Rachmadani", "Enara Barts Zain", "Fachri Putra Ramadhan", "Fahriza Kurniawan", "Fahriz Adriansyah", "Gian Aswangga Topu", "Hisyam Al Ghifari", "Indra Ardiyansyah", "Kirana Nur Hidayat", "Muhammad Adhika Mahesa Putra", "Muhammad Rhafly Awalludin", "Muhammad Hikmal Mubarok", "Muhammad Putra Novrianto", "Muhammad Ziya Ulhaq", "Nadya Shafira", "Naufal Febrian", "Peggy Nur Afdila", "Perdy Hardiansyah", "Raynaldy Yessy Putra", "Rully Indrawanta", "Siti Zahra Umniyah", "Syifa Shofariyah", "Yara Rahma Nathania", "Zulfikri Hani Nurdin"],
+        F: ["Aditya Nugraha", "Afnan Muhammad Safiiq Fadhil", "Aldin Algibrani", "Alya Fazilatun Nisa", "Anggian Fauzi", "Arjun Juniarsyah", "Aufa Zaky Akmal", "Daffa Praditya Putra", "Desti Sulistiawati", "Dida Samrotul Fua'da", "Erfan Eka Maulana", "Fabian Ahmad Naufal", "Faiz Rayadhya Permana", "Fariz Maulana Pratama", "Fazrie Putra Gunawan Pratama", "Ghulam Dzaky Munadhil", "Mochamad Nathan", "Muhammad Annafi Imtinan", "Muhammad Ezar Raditia Putra", "Muhammad Hilmi Imadul Kirom", "Muhammad Ihsan Sya’bana", "Nazmul Mustofa", "Raka Putra Utama", "Rian Juliansyah", "Rifat Abdul Manaf", "Rofi Taufiqurrahman", "Syafiq Al Ghifary Jhon Tesa", "Tarisa Nurfitria", "Teguh Permana Putra", "Videl Riksanegara Prayogo Ruslan"],
+        G: ["Adil Khoerussabil", "Arhab Haidar Rasyiq", "Bildan Hafiz", "Dimas Taufik Ramadhan", "Fachril Syamsal Fatihah", "Fahri Aksa Subakti", "Fardan Fadhilah", "Farel Fadilah Hafizd", "Faris Khairy Ananta", "Fathir Putra Sampurna", "Fauzan Muslim", "Fayza Maheswara Haydar Rachman", "Galang Naelul Gifar", "Keyla Putri Yasinta", "Khoirul Rizki Maulidan", "Malva Fawwaz Ramdani", "Miftah Fauzi", "Muhamad Fadhil Akbar", "Muhamad Rifqi Alifa", "Muhammad Dzikry Azhar", "Muhammad Fazli Faizul Mufazal", "Muhammad Refan Surya Saputera", "Naufal Ramadhan Hardianto", "Rafi Haykal Suryaman", "Rafi Maulana Sidiq", "Rafie Rasyad Musthafa", "Riki Arya Nugraha", "Risa Roudotul Jannah", "Rizqi Ghaniya Aliy", "Romi Ahmad Febrian", "Talitha Naila Nursalma", "Ulfa Nurul Arba"]
+      };
+      const makeDefaultStudents = (className) => STUDENT_NAMES_BY_CLASS[className].map((name) => ({ id: makeId(), name, payments: {} }));
+      const rosterWithSavedPayments = (className, savedStudents = []) => {
+        const savedByName = new Map(savedStudents.map((student) => [student.name?.trim().toLocaleLowerCase("id-ID"), student]));
+        return STUDENT_NAMES_BY_CLASS[className].map((name, index) => {
+          const previous = savedByName.get(name.toLocaleLowerCase("id-ID")) || savedStudents[index];
+          return { ...previous, id: previous?.id || makeId(), name, payments: previous?.payments || {} };
+        });
+      };
+      const initialState = () => ({
+        monthlyDues: 25000,
+        selectedClass: "A",
+        classes: Object.fromEntries(CLASS_NAMES.map((className) => [className, makeDefaultStudents(className)])),
+        expenses: {}
+      });
+      const loadState = () => {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (saved && Number.isFinite(saved.monthlyDues)) {
+            if (saved.classes && CLASS_NAMES.every((className) => Array.isArray(saved.classes[className]))) {
+              const classes = Object.fromEntries(CLASS_NAMES.map((className) => [className, rosterWithSavedPayments(className, saved.classes[className])]));
+              return {
+                ...saved,
+                classes,
+                selectedClass: CLASS_NAMES.includes(saved.selectedClass) ? saved.selectedClass : "A",
+                expenses: saved.expenses && typeof saved.expenses === "object" ? saved.expenses : {}
+              };
+            }
+            if (Array.isArray(saved.students)) {
+              const classes = Object.fromEntries(CLASS_NAMES.map((className) => [className, makeDefaultStudents(className)]));
+              classes.A = rosterWithSavedPayments("A", saved.students);
+              return { monthlyDues: saved.monthlyDues, selectedClass: "A", classes, expenses: {} };
+            }
+          }
+        } catch (error) { console.warn("Data kas tidak dapat dibaca, memulai dengan data contoh.", error); }
+        return initialState();
+      };
+      let state = loadState();
+      try {
+        const response = await apiRequest("/api/state");
+        if (response.state) {
+          state = response.state;
+        } else {
+          const initialized = await apiRequest("/api/state/initialize", {
+            method: "POST",
+            body: JSON.stringify({ state })
+          });
+          state = initialized.state;
+        }
+      } catch (error) {
+        console.warn("Backend tidak dapat dijangkau; menggunakan data browser.", error);
+      }
+      const saveState = () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (currentRole === "pengelola") {
+          apiRequest("/api/state", { method: "PUT", body: JSON.stringify({ state }) })
+            .catch((error) => showToast(error.message));
+        }
+      };
+
+      const updateLoginFields = () => {
+        const managerSelected = loginRoleInput.value === "pengelola";
+        document.querySelector("#manager-password-field").hidden = !managerSelected;
+        managerPasswordInput.required = managerSelected;
+        document.querySelector("#login-error").textContent = "";
+      };
+      loginRoleInput.addEventListener("change", updateLoginFields);
+      document.querySelector("#login-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const role = loginRoleInput.value;
+        const loginError = document.querySelector("#login-error");
+        try {
+          await apiRequest("/api/login", {
+            method: "POST",
+            body: JSON.stringify({ role, password: managerPasswordInput.value })
+          });
+        } catch (error) {
+          loginError.textContent = error.message;
+          if (role === "pengelola") managerPasswordInput.focus();
+          return;
+        }
+        currentRole = role;
+        document.querySelector("#login-screen").hidden = true;
+        document.querySelector("#app-shell").hidden = false;
+        document.querySelector("#role-indicator").textContent = role === "pengelola" ? "Pengelola" : "Mahasiswa";
+        document.querySelectorAll(".manager-only").forEach((button) => { button.hidden = role !== "pengelola"; });
+        document.querySelector("#topup-tab").hidden = role === "pengelola";
+        document.querySelector(role === "pengelola" ? "#dashboard-tab" : "#topup-tab").click();
+      });
+      document.querySelector("#logout-button").addEventListener("click", async () => {
+        try { await apiRequest("/api/session", { method: "DELETE" }); }
+        catch (error) { console.warn("Sesi server tidak dapat dihapus.", error); }
+        currentRole = null;
+        managerPasswordInput.value = "";
+        loginRoleInput.value = "mahasiswa";
+        updateLoginFields();
+        document.querySelector("#app-shell").hidden = true;
+        document.querySelector("#login-screen").hidden = false;
+      });
+
+      CLASS_NAMES.forEach((className) => {
+        const option = document.createElement("option");
+        option.value = className;
+        option.textContent = `Kelas ${className}`;
+        classInput.append(option);
+      });
+      classInput.value = state.selectedClass;
+      for (let offset = 0; offset < 12; offset++) {
+        const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+        const key = monthKey(date);
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = periodText(key);
+        periodInput.append(option);
+      }
+      duesInput.value = state.monthlyDues;
+
+      const studentsForClass = () => state.classes[classInput.value] || [];
+      const paymentsFor = (student, key = periodInput.value) => student.payments?.[key] || [];
+      const expensesFor = (className = classInput.value, key = periodInput.value) => state.expenses?.[className]?.[key] || [];
+      const totalFor = (student, key = periodInput.value) => paymentsFor(student, key).reduce((total, payment) => total + Number(payment.amount || 0), 0);
+      const incomesAcrossClasses = (key) => CLASS_NAMES.flatMap((className) => (state.classes[className] || []).flatMap((student) => paymentsFor(student, key).map((payment) => ({ ...payment, studentName: student.name, className }))));
+      const expensesAcrossClasses = (key) => CLASS_NAMES.flatMap((className) => expensesFor(className, key).map((expense) => ({ ...expense, className })));
+      const findRegisteredTopupStudent = () => {
+        const normalizedName = topupStudentInput.value.trim().toLocaleLowerCase("id-ID");
+        return normalizedName ? studentsForClass().find((student) => student.name.trim().toLocaleLowerCase("id-ID") === normalizedName) : null;
+      };
+      const updateTopupStudentValidation = () => {
+        const name = topupStudentInput.value.trim();
+        const isRegistered = !name || Boolean(findRegisteredTopupStudent());
+        const message = name && !isRegistered ? "nama tidak terdaftar" : "";
+        const errorMessage = document.querySelector("#topup-name-error");
+        errorMessage.textContent = message;
+        errorMessage.hidden = !message;
+        topupStudentInput.setCustomValidity(message);
+        topupStudentInput.setAttribute("aria-invalid", String(Boolean(message)));
+        return isRegistered;
+      };
+      const updateTopupStudentOptions = () => {
+        document.querySelector("#summary-class").textContent = `Kelas ${classInput.value}`;
+        document.querySelector("#summary-student").textContent = topupStudentInput.value.trim() || "Belum diisi";
+        updateTopupStudentValidation();
+      };
+      const selectedPaymentMethod = () => "QRIS";
+      const updateTopupSummary = () => {
+        const amount = selectedTopupAmount === "custom" ? Number(document.querySelector("#topup-amount").value) || 0 : selectedTopupAmount;
+        document.querySelector("#topup-total").textContent = formatRupiah(amount);
+        document.querySelector("#summary-method").textContent = selectedPaymentMethod();
+        document.querySelector("#summary-student").textContent = topupStudentInput.value.trim() || "Belum diisi";
+      };
+      const statusFor = (student) => {
+        const total = totalFor(student);
+        if (total >= state.monthlyDues && state.monthlyDues > 0) return "paid";
+        if (total > 0) return "partial";
+        return "unpaid";
+      };
+
+      function render() {
+        const key = periodInput.value;
+        const students = studentsForClass();
+        const classExpenses = expensesFor(classInput.value, key);
+        const allIncomes = incomesAcrossClasses(key);
+        const allExpenses = expensesAcrossClasses(key);
+        const filter = filterInput.value;
+        const query = searchInput.value.trim().toLocaleLowerCase("id-ID");
+        const collected = students.reduce((sum, student) => sum + totalFor(student, key), 0);
+        const allIncomeTotal = allIncomes.reduce((total, payment) => total + Number(payment.amount || 0), 0);
+        const allExpenseTotal = allExpenses.reduce((total, expense) => total + Number(expense.amount || 0), 0);
+        const classExpensesTotal = classExpenses.reduce((total, expense) => total + Number(expense.amount || 0), 0);
+        const target = students.length * state.monthlyDues;
+        const paidStudents = students.filter((student) => statusFor(student) === "paid").length;
+        const outstanding = Math.max(0, target - collected);
+        const rate = target ? Math.min(100, Math.round(collected / target * 100)) : 0;
+        document.querySelector("#collected-total").textContent = formatRupiah(collected);
+        document.querySelector("#target-total").textContent = formatRupiah(target);
+        document.querySelector("#remaining-total").textContent = formatRupiah(outstanding);
+        document.querySelector("#paid-count").textContent = `${paidStudents} dari ${students.length} lunas`;
+        document.querySelector("#rate-label").textContent = `${rate}% target tercapai`;
+        document.querySelector("#student-count").textContent = `${students.length} mahasiswa`;
+        document.querySelector("#outstanding-count").textContent = `${students.filter((student) => statusFor(student) !== "paid").length} mahasiswa`;
+        document.querySelector("#collection-progress").style.width = `${rate}%`;
+        document.querySelector("#period-label").textContent = periodText(key);
+        document.querySelector("#page-title").textContent = `Kas Kelas ${classInput.value}`;
+        document.querySelector("#class-expense-total").textContent = formatRupiah(classExpensesTotal);
+        document.querySelector("#class-expense-count").textContent = `${classExpenses.length} catatan`;
+        document.querySelector("#class-income-total").textContent = formatRupiah(collected);
+        document.querySelector("#class-cash-balance").textContent = formatRupiah(collected - classExpensesTotal);
+        document.querySelector("#overall-income-total").textContent = formatRupiah(allIncomeTotal);
+        document.querySelector("#overall-expense-total").textContent = formatRupiah(allExpenseTotal);
+        document.querySelector("#overall-balance-total").textContent = formatRupiah(allIncomeTotal - allExpenseTotal);
+        document.querySelector("#overall-income-count").textContent = `${allIncomes.length} transaksi`;
+        document.querySelector("#overall-expense-count").textContent = `${allExpenses.length} catatan`;
+        document.querySelector("#expense-rows").innerHTML = classExpenses.length ? classExpenses.slice().sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || "")).map((expense) => {
+          const dateLabel = new Date(`${expense.date}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+          const timeLabel = expense.time ? `<div class="student-sub">${escapeHTML(expense.time)}</div>` : "";
+          const dateTime = expense.time ? `${expense.date}T${expense.time}` : expense.date;
+          return `<tr><td><time datetime="${escapeHTML(dateTime)}">${dateLabel}</time>${timeLabel}</td><td class="expense-note">${escapeHTML(expense.note)}</td><td style="text-align:right"><strong>${formatRupiah(expense.amount)}</strong></td><td style="text-align:right"><button class="delete-expense" type="button" data-delete-expense="${escapeHTML(expense.id)}">Hapus</button></td></tr>`;
+        }).join("") : `<tr><td class="expense-empty" colspan="4">Belum ada pengeluaran pada periode ini.</td></tr>`;
+        document.querySelector("#overall-income-rows").innerHTML = allIncomes.length ? allIncomes.slice().sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || "")).map((payment) => {
+          const dateLabel = new Date(`${payment.date}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+          const timeLabel = payment.time ? `<div class="student-sub">${escapeHTML(payment.time)}</div>` : "";
+          const dateTime = payment.time ? `${payment.date}T${payment.time}` : payment.date;
+          return `<tr><td><time datetime="${escapeHTML(dateTime)}">${dateLabel}</time>${timeLabel}</td><td>Kelas ${escapeHTML(payment.className)}</td><td>${escapeHTML(payment.studentName)}</td><td style="text-align:right"><strong>${formatRupiah(payment.amount)}</strong></td></tr>`;
+        }).join("") : `<tr><td class="expense-empty" colspan="4">Belum ada pemasukan pada periode ini.</td></tr>`;
+        document.querySelector("#overall-expense-rows").innerHTML = allExpenses.length ? allExpenses.slice().sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || "")).map((expense) => {
+          const dateLabel = new Date(`${expense.date}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+          const timeLabel = expense.time ? `<div class="student-sub">${escapeHTML(expense.time)}</div>` : "";
+          const dateTime = expense.time ? `${expense.date}T${expense.time}` : expense.date;
+          return `<tr><td><time datetime="${escapeHTML(dateTime)}">${dateLabel}</time>${timeLabel}</td><td>Kelas ${escapeHTML(expense.className)}</td><td class="expense-note">${escapeHTML(expense.note)}</td><td style="text-align:right"><strong>${formatRupiah(expense.amount)}</strong></td></tr>`;
+        }).join("") : `<tr><td class="expense-empty" colspan="4">Belum ada pengeluaran pada periode ini.</td></tr>`;
+
+        const filtered = students.filter((student) => {
+          const matchesName = student.name.toLocaleLowerCase("id-ID").includes(query);
+          return matchesName && (filter === "all" || statusFor(student) === filter);
+        }).sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
+        document.querySelector("#visible-count").textContent = `${filtered.length} mahasiswa`;
+        document.querySelector("#shown-total").textContent = `${filtered.length} mahasiswa`;
+        const rows = document.querySelector("#student-rows");
+        rows.innerHTML = filtered.map((student, index) => {
+          const paid = totalFor(student, key);
+          const due = Math.max(0, state.monthlyDues - paid);
+          const status = statusFor(student);
+          const label = status === "paid" ? "Lunas" : status === "partial" ? "Cicilan" : "Belum bayar";
+          const initials = student.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("id-ID");
+          return `<tr style="animation-delay:${Math.min(index * 25, 150)}ms">
+            <td><div class="student-cell"><div class="avatar" style="background:${colors[index % colors.length]}">${escapeHTML(initials)}</div><div><div class="student-name">${escapeHTML(student.name)}</div><div class="student-sub">Iuran ${escapeHTML(periodText(key))}</div></div></div></td>
+            <td><span class="status status-${status}">${label}</span></td>
+            <td><div class="amount-main">${formatRupiah(paid)} <span style="color:#98a39c;font-weight:400">/ ${formatRupiah(state.monthlyDues)}</span></div><div class="amount-sub">${status === "paid" ? "Iuran sudah terpenuhi" : `Kurang ${formatRupiah(due)}`}</div></td>
+            <td><div class="row-actions"><button class="text-button history-button" type="button" data-student="${escapeHTML(student.id)}">Riwayat</button></div></td>
+          </tr>`;
+        }).join("");
+        document.querySelector("#empty-state").style.display = filtered.length ? "none" : "block";
+        document.querySelector("table").style.display = filtered.length ? "table" : "none";
+      }
+
+      function showToast(message) {
+        const toast = document.querySelector("#toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove("show"), 2600);
+      }
+
+      async function completePendingInvoice() {
+        const invoice = pendingInvoice;
+        if (!invoice || invoice.paid) return;
+        try {
+          const response = await apiRequest(`/api/invoices/${encodeURIComponent(invoice.id)}/confirm`, {
+            method: "POST",
+            body: "{}"
+          });
+          state = response.state;
+          invoice.paid = true;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (error) {
+          showToast(error.message);
+          return;
+        }
+        render();
+        document.querySelector("#checkout-result").innerHTML = `<div class="invoice-status"><strong>Pembayaran simulasi berhasil</strong><span class="status status-paid">Lunas</span></div><div class="invoice-code">ID transaksi: <strong>${escapeHTML(invoice.id)}</strong></div><p class="invoice-instruction">${formatRupiah(invoice.amount)} tercatat untuk ${escapeHTML(invoice.studentName)} · Kelas ${escapeHTML(invoice.className)}.</p><p class="demo-warning">Status ini hanya tersimpan di browser sebagai demonstrasi, bukan konfirmasi pembayaran sungguhan.</p>`;
+        showToast("Pembayaran simulasi berhasil dicatat.");
+      }
+
+      function openPayment(studentId) {
+        const student = studentsForClass().find((entry) => entry.id === studentId);
+        if (!student) return;
+        activeStudentId = studentId;
+        document.querySelector("#payment-subtitle").textContent = `${student.name} · ${periodText(periodInput.value)}`;
+        renderHistory(student);
+        paymentDialog.showModal();
+      }
+
+      function renderHistory(student) {
+        const payments = paymentsFor(student).slice().sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || ""));
+        document.querySelector("#history-total").textContent = formatRupiah(totalFor(student));
+        document.querySelector("#payment-history").innerHTML = payments.length ? payments.map((payment) => {
+          const dateLabel = new Date(`${payment.date}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+          const timeLabel = payment.time ? ` · ${escapeHTML(payment.time)}` : "";
+          const dateTime = payment.time ? `${payment.date}T${escapeHTML(payment.time)}` : payment.date;
+          return `<div class="history-item"><div><strong>${formatRupiah(payment.amount)}</strong><time datetime="${escapeHTML(dateTime)}">${dateLabel}${timeLabel}</time></div><button class="delete-payment" type="button" data-delete-payment="${escapeHTML(payment.id)}">Hapus</button></div>`;
+        }).join("") : `<div class="field-hint">Belum ada pembayaran pada periode ini.</div>`;
+      }
+
+      classInput.addEventListener("change", () => {
+        state.selectedClass = classInput.value;
+        saveState();
+        updateTopupStudentOptions();
+        updateTopupSummary();
+        render();
+      });
+      periodInput.addEventListener("change", render);
+      searchInput.addEventListener("input", render);
+      filterInput.addEventListener("change", render);
+      duesInput.addEventListener("change", () => {
+        state.monthlyDues = Math.max(0, Number(duesInput.value) || 0);
+        duesInput.value = state.monthlyDues;
+        saveState();
+        render();
+        showToast("Nominal iuran berhasil diperbarui.");
+      });
+      document.querySelector("#add-expense-button").addEventListener("click", () => {
+        document.querySelector("#expense-form").reset();
+        expenseDialog.showModal();
+        document.querySelector("#expense-amount").focus();
+      });
+      document.querySelector("#expense-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const amount = Number(document.querySelector("#expense-amount").value);
+        const note = document.querySelector("#expense-note").value.trim();
+        if (!Number.isFinite(amount) || amount <= 0 || !note) return;
+        const paidAt = localDateTimeInput();
+        state.expenses ||= {};
+        state.expenses[classInput.value] ||= {};
+        state.expenses[classInput.value][periodInput.value] ||= [];
+        state.expenses[classInput.value][periodInput.value].push({ id: makeId(), amount, note, date: paidAt.slice(0, 10), time: paidAt.slice(11, 16) });
+        saveState();
+        render();
+        expenseDialog.close();
+        showToast("Pengeluaran berhasil dicatat.");
+      });
+      document.querySelector("#student-rows").addEventListener("click", (event) => {
+        const historyButton = event.target.closest("[data-student]");
+        if (historyButton) openPayment(historyButton.dataset.student);
+      });
+      document.querySelector("#payment-history").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-payment]");
+        if (!button) return;
+        const student = studentsForClass().find((entry) => entry.id === activeStudentId);
+        if (!student) return;
+        const key = periodInput.value;
+        student.payments[key] = paymentsFor(student).filter((payment) => payment.id !== button.dataset.deletePayment);
+        if (!student.payments[key].length) delete student.payments[key];
+        saveState();
+        render();
+        renderHistory(student);
+        showToast("Catatan pembayaran dihapus.");
+      });
+      document.querySelector("#expense-rows").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-expense]");
+        if (!button) return;
+        const classExpenses = state.expenses?.[classInput.value]?.[periodInput.value];
+        if (!classExpenses) return;
+        state.expenses[classInput.value][periodInput.value] = classExpenses.filter((expense) => expense.id !== button.dataset.deleteExpense);
+        if (!state.expenses[classInput.value][periodInput.value].length) delete state.expenses[classInput.value][periodInput.value];
+        saveState();
+        render();
+        showToast("Catatan pengeluaran dihapus.");
+      });
+      document.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
+      [paymentDialog, expenseDialog].forEach((dialog) => dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) dialog.close();
+      }));
+      document.querySelector("#export-button").addEventListener("click", () => {
+        const key = periodInput.value;
+        const rows = [["Nama mahasiswa", "Kelas", "Periode", "Nominal iuran", "Sudah dibayar", "Kekurangan", "Status"]];
+        studentsForClass().slice().sort((a, b) => a.name.localeCompare(b.name, "id-ID")).forEach((student) => {
+          const paid = totalFor(student, key);
+          const status = statusFor(student);
+          const label = status === "paid" ? "Lunas" : status === "partial" ? "Cicilan" : "Belum bayar";
+          rows.push([student.name, classInput.value, periodText(key), state.monthlyDues, paid, Math.max(0, state.monthlyDues - paid), label]);
+        });
+        const csv = "\uFEFF" + rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+        const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `kas-kelas-${classInput.value}-${key}.csv`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        showToast("Rekap CSV berhasil diunduh.");
+      });
+
+      topupStudentInput.addEventListener("input", () => {
+        updateTopupSummary();
+        updateTopupStudentValidation();
+      });
+      document.querySelectorAll(".amount-option").forEach((button) => button.addEventListener("click", () => {
+        document.querySelectorAll(".amount-option").forEach((option) => option.classList.toggle("selected", option === button));
+        selectedTopupAmount = button.dataset.amount === "custom" ? "custom" : Number(button.dataset.amount);
+        document.querySelector("#custom-amount-wrap").classList.toggle("visible", selectedTopupAmount === "custom");
+        updateTopupSummary();
+      }));
+      document.querySelector("#topup-amount").addEventListener("input", updateTopupSummary);
+      document.querySelector("#topup-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const studentName = topupStudentInput.value.trim();
+        const student = findRegisteredTopupStudent();
+        const amount = selectedTopupAmount === "custom" ? Number(document.querySelector("#topup-amount").value) : selectedTopupAmount;
+        if (!studentName || !student || !Number.isFinite(amount) || amount < 1000) {
+          updateTopupStudentValidation();
+          if (studentName && !student) {
+            showToast("nama tidak terdaftar");
+            topupStudentInput.focus();
+            return;
+          }
+          showToast("Isi nama mahasiswa dan nominal minimal Rp1.000.");
+          return;
+        }
+        let invoice;
+        try {
+          const response = await apiRequest("/api/invoices", {
+            method: "POST",
+            body: JSON.stringify({
+              className: classInput.value,
+              studentId: student.id,
+              amount,
+              period: monthKey(now)
+            })
+          });
+          invoice = response.invoice;
+          pendingInvoice = { ...invoice, paid: false };
+        } catch (error) {
+          showToast(error.message);
+          return;
+        }
+        const instruction = "Pindai QRIS dengan aplikasi bank atau e-wallet, lalu masukkan nominal yang tertera. Pastikan nama penerima Mukena sebelum menyelesaikan pembayaran.";
+        const result = document.querySelector("#checkout-result");
+        const qrMarkup = `<div class="qris-payment"><div class="qris-title">QRIS pembayaran ke Mukena</div><div class="qris-code"><img src="qris.jpeg" alt="Kode QRIS, penerima Mukena" loading="lazy"></div><div class="qris-caption">Total pembayaran: ${formatRupiah(pendingInvoice.amount)}</div></div>`;
+        result.innerHTML = `<div class="invoice-status"><strong>Tagihan dibuat</strong><span class="invoice-badge" data-invoice-status>Menunggu pembayaran</span></div><div class="invoice-code">ID transaksi: <strong>${escapeHTML(pendingInvoice.id)}</strong></div><p class="invoice-instruction">${instruction}</p>${qrMarkup}<p class="demo-warning">Pembayaran tidak diverifikasi otomatis. Tombol berikut hanya mencatat konfirmasi secara lokal sebagai simulasi.</p><button class="button button-primary topup-submit" type="button" data-confirm-payment>Catat pembayaran (simulasi)</button>`;
+        result.classList.add("visible");
+        updateTopupSummary();
+      });
+      document.querySelector("#checkout-result").addEventListener("click", (event) => {
+        if (!event.target.closest("[data-confirm-payment]")) return;
+        completePendingInvoice();
+      });
+      document.querySelector("#topup-tab").addEventListener("click", () => {
+        if (currentRole !== "mahasiswa") return;
+        document.querySelector("#topup-view").hidden = false;
+        document.querySelector("#dashboard-view").hidden = true;
+        document.querySelector("#expense-view").hidden = true;
+        document.querySelector("#overall-view").hidden = true;
+        document.querySelector(".class-wrap").hidden = false;
+        document.querySelector(".period-wrap").hidden = true;
+        document.querySelector("#topup-tab").classList.add("active");
+        document.querySelector("#dashboard-tab").classList.remove("active");
+        document.querySelector("#expense-tab").classList.remove("active");
+        document.querySelector("#overall-tab").classList.remove("active");
+        document.querySelector("#topup-tab").setAttribute("aria-current", "page");
+        document.querySelector("#dashboard-tab").removeAttribute("aria-current");
+        document.querySelector("#expense-tab").removeAttribute("aria-current");
+        document.querySelector("#overall-tab").removeAttribute("aria-current");
+      });
+      document.querySelector("#dashboard-tab").addEventListener("click", () => {
+        if (currentRole !== "pengelola") return;
+        document.querySelector("#topup-view").hidden = true;
+        document.querySelector("#dashboard-view").hidden = false;
+        document.querySelector("#expense-view").hidden = true;
+        document.querySelector("#overall-view").hidden = true;
+        document.querySelector(".class-wrap").hidden = false;
+        document.querySelector(".period-wrap").hidden = false;
+        document.querySelector("#dashboard-tab").classList.add("active");
+        document.querySelector("#topup-tab").classList.remove("active");
+        document.querySelector("#expense-tab").classList.remove("active");
+        document.querySelector("#overall-tab").classList.remove("active");
+        document.querySelector("#dashboard-tab").setAttribute("aria-current", "page");
+        document.querySelector("#topup-tab").removeAttribute("aria-current");
+        document.querySelector("#expense-tab").removeAttribute("aria-current");
+        document.querySelector("#overall-tab").removeAttribute("aria-current");
+        render();
+      });
+      document.querySelector("#expense-tab").addEventListener("click", () => {
+        if (currentRole !== "pengelola") return;
+        document.querySelector("#topup-view").hidden = true;
+        document.querySelector("#dashboard-view").hidden = true;
+        document.querySelector("#expense-view").hidden = false;
+        document.querySelector("#overall-view").hidden = true;
+        document.querySelector(".class-wrap").hidden = false;
+        document.querySelector(".period-wrap").hidden = false;
+        document.querySelector("#expense-tab").classList.add("active");
+        document.querySelector("#topup-tab").classList.remove("active");
+        document.querySelector("#dashboard-tab").classList.remove("active");
+        document.querySelector("#overall-tab").classList.remove("active");
+        document.querySelector("#expense-tab").setAttribute("aria-current", "page");
+        document.querySelector("#topup-tab").removeAttribute("aria-current");
+        document.querySelector("#dashboard-tab").removeAttribute("aria-current");
+        document.querySelector("#overall-tab").removeAttribute("aria-current");
+        render();
+      });
+      document.querySelector("#overall-tab").addEventListener("click", () => {
+        if (currentRole !== "pengelola") return;
+        document.querySelector("#topup-view").hidden = true;
+        document.querySelector("#dashboard-view").hidden = true;
+        document.querySelector("#expense-view").hidden = true;
+        document.querySelector("#overall-view").hidden = false;
+        document.querySelector(".class-wrap").hidden = true;
+        document.querySelector(".period-wrap").hidden = false;
+        document.querySelector("#overall-tab").classList.add("active");
+        document.querySelector("#topup-tab").classList.remove("active");
+        document.querySelector("#dashboard-tab").classList.remove("active");
+        document.querySelector("#expense-tab").classList.remove("active");
+        document.querySelector("#overall-tab").setAttribute("aria-current", "page");
+        document.querySelector("#topup-tab").removeAttribute("aria-current");
+        document.querySelector("#dashboard-tab").removeAttribute("aria-current");
+        document.querySelector("#expense-tab").removeAttribute("aria-current");
+        render();
+      });
+
+      updateTopupStudentOptions();
+      updateTopupSummary();
+      document.querySelector(".period-wrap").hidden = true;
+      render();
+    })();
+  </script>
+</body>
+</html>
