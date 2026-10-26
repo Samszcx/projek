@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1f5fbf">
-  <title>INFORYZE26 - Pembayaran Kas Kelas</title>
+  <title>INFORYZE26 - Pembayaran Kas Angkatan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -24,6 +24,17 @@
       --shadow: 0 14px 38px rgba(35, 76, 130, .09);
     }
 
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --ink: #e7eef7;
+      --muted: #a6b5c8;
+      --line: #34475c;
+      --paper: #121b28;
+      --white: #1b2939;
+      --green: #397bd3;
+      --green-light: #223b57;
+      --shadow: 0 14px 38px rgba(0, 0, 0, .22);
+    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -181,6 +192,9 @@
     .topup-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .75fr); gap: 20px; align-items: start; }
     .topup-form, .checkout-panel { background: #fff; border: 1px solid var(--line); border-radius: 11px; box-shadow: var(--shadow); }
     .topup-form { padding: 23px; }
+    .topup-form .class-wrap { margin-bottom: 20px; }
+    .topup-form .class-wrap label { color: #4c627e; font-size: 11px; font-weight: 700; }
+    .topup-form .class-wrap select { width: 100%; min-width: 0; min-height: 42px; padding: 0 36px 0 11px; border-color: var(--line); background-color: #fff; color: var(--ink); }
     .topup-step { display: flex; align-items: center; gap: 9px; margin: 0 0 15px; font: 600 16px "Space Grotesk", sans-serif; }
     .step-number { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; background: #e6f0ff; color: #245da6; font: 700 11px "DM Sans", sans-serif; }
     .topup-field { margin-bottom: 22px; }
@@ -352,7 +366,7 @@
     .field label { color: #4c627e; font-size: 11px; font-weight: 700; }
     .field input { width: 100%; height: 40px; border: 1px solid var(--line); border-radius: 7px; padding: 0 11px; outline: none; }
     .field-hint { color: var(--muted); font-size: 10px; margin-top: -2px; }
-    .name-error { color: #a64d40; }
+    .name-error { margin-top: 4px; color: #a64d40; text-transform: uppercase; }
     .field textarea { width: 100%; min-height: 92px; border: 1px solid var(--line); border-radius: 7px; padding: 10px 11px; outline: none; resize: vertical; }
     .field textarea:focus { border-color: #6b9cda; box-shadow: 0 0 0 3px rgba(47, 111, 194, .13); }
     .expense-empty { color: var(--muted); text-align: center; padding: 24px 18px; }
@@ -366,6 +380,38 @@
     .delete-payment { border: 0; background: transparent; color: #ae6653; font-size: 10px; font-weight: 700; padding: 5px; }
     .toast { position: fixed; z-index: 4; right: 22px; bottom: 22px; padding: 12px 16px; background: var(--green); color: #fff; border-radius: 8px; box-shadow: var(--shadow); font-size: 12px; opacity: 0; transform: translateY(12px); pointer-events: none; transition: .2s ease; }
     .toast.show { opacity: 1; transform: translateY(0); }
+    html[data-theme="dark"] body { background-image: radial-gradient(#34475c 0.7px, transparent 0.7px); }
+    html[data-theme="dark"] .login-screen { background: linear-gradient(135deg, #15263a 0%, #121b28 56%, #182b2b 100%); }
+    html[data-theme="dark"] .login-panel, html[data-theme="dark"] .topup-form, html[data-theme="dark"] .checkout-panel,
+    html[data-theme="dark"] .table-shell, html[data-theme="dark"] dialog { background: #1b2939; border-color: var(--line); }
+    html[data-theme="dark"] .login-panel .field label, html[data-theme="dark"] .field label,
+    html[data-theme="dark"] .payment-option span { color: #b7c6d8; }
+    html[data-theme="dark"] .login-panel select, html[data-theme="dark"] .login-panel input,
+    html[data-theme="dark"] .topup-select, html[data-theme="dark"] .topup-input,
+    html[data-theme="dark"] .topup-form .class-wrap select, html[data-theme="dark"] .dues-input,
+    html[data-theme="dark"] .search-input, html[data-theme="dark"] .filter-select,
+    html[data-theme="dark"] .field input, html[data-theme="dark"] .field textarea,
+    html[data-theme="dark"] .amount-option { background-color: #172434; border-color: var(--line); color: var(--ink); }
+    html[data-theme="dark"] .amount-option:hover, html[data-theme="dark"] .amount-option.selected,
+    html[data-theme="dark"] .payment-option input:checked + span { background: #263d59; color: #b7d7ff; }
+    html[data-theme="dark"] .step-number, html[data-theme="dark"] .avatar { background: #263d59; color: #b7d7ff; }
+    html[data-theme="dark"] .secure-note, html[data-theme="dark"] .checkout-result,
+    html[data-theme="dark"] .close-button, html[data-theme="dark"] .button-light { background: #223247; color: var(--ink); }
+    html[data-theme="dark"] .button-light { border-color: var(--line); }
+    html[data-theme="dark"] thead { background: #223247; }
+    html[data-theme="dark"] td, html[data-theme="dark"] .history-item { border-color: var(--line); }
+    html[data-theme="dark"] tbody tr:hover { background: #223247; }
+    html[data-theme="dark"] .qris-payment { background: #172434; }
+    html[data-theme="dark"] .topup-form .class-wrap label, html[data-theme="dark"] .topup-field label,
+    html[data-theme="dark"] .payment-label, html[data-theme="dark"] th,
+    html[data-theme="dark"] .student-sub, html[data-theme="dark"] .amount-sub,
+    html[data-theme="dark"] .note, html[data-theme="dark"] .invoice-code,
+    html[data-theme="dark"] .invoice-instruction { color: #b7c6d8; }
+    html[data-theme="dark"] .eyebrow { color: #9dc6ff; }
+    html[data-theme="dark"] .text-button { color: #9dc6ff; }
+    html[data-theme="dark"] .progress { background: #34475c; }
+    .theme-toggle { width: 36px; min-width: 36px; min-height: 36px; height: 36px; padding: 0; display: inline-grid; place-items: center; font-size: 19px; line-height: 1; }
+    .login-theme-toggle { position: absolute; z-index: 2; top: 20px; right: 22px; }
     @media (max-width: 700px) {
       .login-screen { padding: 18px; }
       .login-screen::after { width: 300px; right: -175px; bottom: -180px; }
@@ -376,7 +422,7 @@
       .topbar-inner { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
       .top-nav { order: 3; width: 100%; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .expense-head-actions { width: 100%; justify-content: space-between; }
-      .top-actions { order: 2; margin-left: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .top-actions { order: 2; margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
       .topbar .brand-caption { display: none; }
       .period-wrap select, .class-wrap select { width: 100%; min-width: 0; font-size: 12px; }
       .page { padding: 27px 16px 44px; }
@@ -408,9 +454,17 @@
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
     }
   </style>
+  <script>
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem("kaskita-theme") === "dark" ? "dark" : "light";
+    } catch (error) {
+      document.documentElement.dataset.theme = "light";
+    }
+  </script>
 </head>
 <body>
   <section class="login-screen" id="login-screen" aria-labelledby="login-title">
+    <button class="button button-light theme-toggle login-theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap" aria-pressed="false"><span data-theme-icon aria-hidden="true">&#9790;</span></button>
     <form class="login-panel" id="login-form">
       <div class="brand">
         <img class="brand-mark" src="inforyze.jpg" alt="" aria-hidden="true">
@@ -460,6 +514,7 @@
           <label for="period">Periode pembayaran</label>
           <select id="period" aria-label="Periode pembayaran"></select>
         </div>
+        <button class="button button-small button-light theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap" aria-pressed="false"><span data-theme-icon aria-hidden="true">&#9790;</span></button>
       </div>
     </div>
   </header>
@@ -473,7 +528,7 @@
       </div>
       <div class="topup-layout">
         <form class="topup-form" id="topup-form">
-          <div class="topup-step"><span class="step-number">1</span> Isi nama mahasiswa</div>
+          <div class="topup-step"><span class="step-number">1</span> Identitas mahasiswa</div>
           <div class="topup-field">
             <label for="topup-student">Nama mahasiswa</label>
             <input class="topup-input" id="topup-student" type="text" autocomplete="off" maxlength="80" placeholder="Ketik nama lengkap" required>
@@ -655,6 +710,27 @@
       let activeStudentId = null;
       let toastTimeout;
 
+      const themeButtons = document.querySelectorAll("[data-theme-toggle]");
+      const setTheme = (theme) => {
+        document.documentElement.dataset.theme = theme;
+        themeButtons.forEach((button) => {
+          const isDark = theme === "dark";
+          const actionLabel = isDark ? "Aktifkan mode terang" : "Aktifkan mode gelap";
+          button.querySelector("[data-theme-icon]").textContent = isDark ? "☀" : "☾";
+          button.setAttribute("aria-label", actionLabel);
+          button.title = actionLabel;
+          button.setAttribute("aria-pressed", String(isDark));
+        });
+        document.querySelector('meta[name="theme-color"]').content = theme === "dark" ? "#121b28" : "#1f5fbf";
+      };
+      setTheme(document.documentElement.dataset.theme || "light");
+      themeButtons.forEach((button) => button.addEventListener("click", () => {
+        const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        setTheme(theme);
+        try { localStorage.setItem("kaskita-theme", theme); }
+        catch (error) { console.warn("Preferensi tema tidak dapat disimpan.", error); }
+      }));
+
       const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       const periodText = (key) => {
         const [year, month] = key.split("-").map(Number);
@@ -767,6 +843,14 @@
         document.querySelector("#login-screen").hidden = true;
         document.querySelector("#app-shell").hidden = false;
         document.querySelector("#role-indicator").textContent = role === "pengelola" ? "Pengelola" : "Mahasiswa";
+        const classWrap = document.querySelector(".class-wrap");
+        if (role === "mahasiswa") {
+          const topupForm = document.querySelector("#topup-form");
+          topupForm.insertBefore(classWrap, topupForm.querySelector(".topup-field"));
+        } else {
+          const topActions = document.querySelector(".top-actions");
+          topActions.insertBefore(classWrap, document.querySelector(".period-wrap"));
+        }
         document.querySelectorAll(".manager-only").forEach((button) => { button.hidden = role !== "pengelola"; });
         document.querySelector("#topup-tab").hidden = role === "pengelola";
         document.querySelector(role === "pengelola" ? "#dashboard-tab" : "#topup-tab").click();
