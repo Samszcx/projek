@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1f5fbf">
+  <title>Masuk - INFORYZE26</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: light; font-family: "DM Sans", sans-serif; color: #1d2d45; background: #f4f8fd; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; }
+    .panel { width: min(440px, 100%); padding: 34px; background: #fff; border: 1px solid #dce6f2; border-radius: 15px; box-shadow: 0 24px 64px rgba(35, 76, 130, .13); }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; }
+    .brand-name { font: 700 19px "Space Grotesk", sans-serif; }
+    .brand-caption, .copy { color: #6b7c94; }
+    h1 { margin: 27px 0 8px; font: 600 29px/1.15 "Space Grotesk", sans-serif; }
+    .copy { margin: 0 0 24px; line-height: 1.5; }
+    label { display: block; margin: 0 0 7px; font-size: 13px; font-weight: 600; }
+    select, input, button { width: 100%; min-height: 46px; border-radius: 8px; font: inherit; }
+    select, input { margin-bottom: 16px; padding: 0 12px; color: #1d2d45; border: 1px solid #d4e0ee; background: #fbfdff; }
+    button { border: 0; background: #1f5fbf; color: #fff; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .65; cursor: wait; }
+    .error { min-height: 20px; margin: 0 0 10px; color: #a64d40; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <div class="brand">
+      <img src="/inforyze.jpg" alt="">
+      <div><div class="brand-name">INFORYZE</div><div class="brand-caption">Catatan kas angkatan</div></div>
+    </div>
+    <h1>Masuk ke INFORYZE26</h1>
+    <p class="copy">Gunakan kata sandi akses yang diberikan pengelola.</p>
+    <form id="login-form">
+      <label for="role">Masuk sebagai</label>
+      <select id="role" required>
+        <option value="mahasiswa">Mahasiswa</option>
+        <option value="pengelola">Pengelola</option>
+      </select>
+      <label for="password" id="password-label">Kata sandi akses mahasiswa</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required>
+      <p class="error" id="error" role="alert" aria-live="polite"></p>
+      <button type="submit">Masuk</button>
+    </form>
+  </main>
+  <script>
+    const roleInput = document.querySelector("#role");
+    const passwordInput = document.querySelector("#password");
+    const submitButton = document.querySelector("button");
+    const errorMessage = document.querySelector("#error");
+    roleInput.addEventListener("change", () => {
+      document.querySelector("#password-label").textContent = roleInput.value === "pengelola"
+        ? "Password pengelola"
+        : "Kata sandi akses mahasiswa";
+      errorMessage.textContent = "";
+    });
+    const queryError = new URLSearchParams(location.search).get("error");
+    if (queryError) errorMessage.textContent = queryError;
+    document.querySelector("#login-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      submitButton.disabled = true;
+      errorMessage.textContent = "";
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: roleInput.value, password: passwordInput.value })
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Login gagal.");
+        location.replace("/");
+      } catch (error) {
+        errorMessage.textContent = error.message || "Tidak dapat menghubungi server.";
+        passwordInput.focus();
+        submitButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

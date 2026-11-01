@@ -463,30 +463,6 @@
   </script>
 </head>
 <body>
-  <section class="login-screen" id="login-screen" aria-labelledby="login-title">
-    <button class="button button-light theme-toggle login-theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap" aria-pressed="false"><span data-theme-icon aria-hidden="true">&#9790;</span></button>
-    <form class="login-panel" id="login-form">
-      <div class="brand">
-        <img class="brand-mark" src="inforyze.jpg" alt="" aria-hidden="true">
-        <div><div class="brand-name">INFORYZE</div><div class="brand-caption" style="color:var(--muted)">Catatan kas angkatan</div></div>
-      </div>
-      <h1 id="login-title">Masuk ke INFORYZE26</h1>
-      <p class="login-copy">Pilih peran untuk melanjutkan.</p>
-      <div class="field">
-        <label for="login-role">Masuk sebagai</label>
-        <select id="login-role" required>
-          <option value="mahasiswa">Mahasiswa</option>
-          <option value="pengelola">Pengelola</option>
-        </select>
-      </div>
-      <div class="field role-password" id="manager-password-field" hidden>
-        <label for="manager-password">Password pengelola</label>
-        <input id="manager-password" type="password" autocomplete="current-password" placeholder="Masukkan password">
-      </div>
-      <p class="login-error" id="login-error" role="alert" aria-live="polite"></p>
-      <button class="button button-primary login-submit" type="submit">Masuk</button>
-    </form>
-  </section>
   <div id="app-shell" hidden>
   <header class="topbar">
     <div class="topbar-inner">
@@ -689,7 +665,6 @@
 
   <script>
     (async () => {
-      const STORAGE_KEY = "kaskita-class-data-v1";
       const CLASS_NAMES = ["A", "B", "C", "D", "E", "F", "G"];
       const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
       const colors = ["#e6f0ff", "#dcecff", "#e8f4ff", "#dce8fa", "#edf5ff", "#e2f1fb"];
@@ -702,8 +677,6 @@
       const paymentDialog = document.querySelector("#payment-dialog");
       const expenseDialog = document.querySelector("#expense-dialog");
       const topupStudentInput = document.querySelector("#topup-student");
-      const loginRoleInput = document.querySelector("#login-role");
-      const managerPasswordInput = document.querySelector("#manager-password");
       let currentRole = null;
       let selectedTopupAmount = 10000;
       let pendingInvoice = null;
@@ -773,74 +746,18 @@
         classes: Object.fromEntries(CLASS_NAMES.map((className) => [className, makeDefaultStudents(className)])),
         expenses: {}
       });
-      const loadState = () => {
-        try {
-          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-          if (saved && Number.isFinite(saved.monthlyDues)) {
-            if (saved.classes && CLASS_NAMES.every((className) => Array.isArray(saved.classes[className]))) {
-              const classes = Object.fromEntries(CLASS_NAMES.map((className) => [className, rosterWithSavedPayments(className, saved.classes[className])]));
-              return {
-                ...saved,
-                classes,
-                selectedClass: CLASS_NAMES.includes(saved.selectedClass) ? saved.selectedClass : "A",
-                expenses: saved.expenses && typeof saved.expenses === "object" ? saved.expenses : {}
-              };
-            }
-            if (Array.isArray(saved.students)) {
-              const classes = Object.fromEntries(CLASS_NAMES.map((className) => [className, makeDefaultStudents(className)]));
-              classes.A = rosterWithSavedPayments("A", saved.students);
-              return { monthlyDues: saved.monthlyDues, selectedClass: "A", classes, expenses: {} };
-            }
-          }
-        } catch (error) { console.warn("Data kas tidak dapat dibaca, memulai dengan data contoh.", error); }
-        return initialState();
-      };
-      let state = loadState();
-      try {
-        const response = await apiRequest("/api/state");
-        if (response.state) {
-          state = response.state;
-        } else {
-          const initialized = await apiRequest("/api/state/initialize", {
-            method: "POST",
-            body: JSON.stringify({ state })
-          });
-          state = initialized.state;
-        }
-      } catch (error) {
-        console.warn("Backend tidak dapat dijangkau; menggunakan data browser.", error);
-      }
+      let state = initialState();
       const saveState = () => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         if (currentRole === "pengelola") {
           apiRequest("/api/state", { method: "PUT", body: JSON.stringify({ state }) })
             .catch((error) => showToast(error.message));
         }
       };
 
-      const updateLoginFields = () => {
-        const managerSelected = loginRoleInput.value === "pengelola";
-        document.querySelector("#manager-password-field").hidden = !managerSelected;
-        managerPasswordInput.required = managerSelected;
-        document.querySelector("#login-error").textContent = "";
-      };
-      loginRoleInput.addEventListener("change", updateLoginFields);
-      document.querySelector("#login-form").addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const role = loginRoleInput.value;
-        const loginError = document.querySelector("#login-error");
-        try {
-          await apiRequest("/api/login", {
-            method: "POST",
-            body: JSON.stringify({ role, password: managerPasswordInput.value })
-          });
-        } catch (error) {
-          loginError.textContent = error.message;
-          if (role === "pengelola") managerPasswordInput.focus();
-          return;
-        }
+      const activateRole = (role) => {
         currentRole = role;
-        document.querySelector("#login-screen").hidden = true;
+        classInput.value = state.selectedClass;
+        duesInput.value = state.monthlyDues;
         document.querySelector("#app-shell").hidden = false;
         document.querySelector("#role-indicator").textContent = role === "pengelola" ? "Pengelola" : "Mahasiswa";
         const classWrap = document.querySelector(".class-wrap");
@@ -854,16 +771,11 @@
         document.querySelectorAll(".manager-only").forEach((button) => { button.hidden = role !== "pengelola"; });
         document.querySelector("#topup-tab").hidden = role === "pengelola";
         document.querySelector(role === "pengelola" ? "#dashboard-tab" : "#topup-tab").click();
-      });
+      };
       document.querySelector("#logout-button").addEventListener("click", async () => {
         try { await apiRequest("/api/session", { method: "DELETE" }); }
         catch (error) { console.warn("Sesi server tidak dapat dihapus.", error); }
-        currentRole = null;
-        managerPasswordInput.value = "";
-        loginRoleInput.value = "mahasiswa";
-        updateLoginFields();
-        document.querySelector("#app-shell").hidden = true;
-        document.querySelector("#login-screen").hidden = false;
+        window.location.replace("/");
       });
 
       CLASS_NAMES.forEach((className) => {
@@ -1019,13 +931,12 @@
           });
           state = response.state;
           invoice.paid = true;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         } catch (error) {
           showToast(error.message);
           return;
         }
         render();
-        document.querySelector("#checkout-result").innerHTML = `<div class="invoice-status"><strong>Pembayaran simulasi berhasil</strong><span class="status status-paid">Lunas</span></div><div class="invoice-code">ID transaksi: <strong>${escapeHTML(invoice.id)}</strong></div><p class="invoice-instruction">${formatRupiah(invoice.amount)} tercatat untuk ${escapeHTML(invoice.studentName)} · Kelas ${escapeHTML(invoice.className)}.</p><p class="demo-warning">Status ini hanya tersimpan di browser sebagai demonstrasi, bukan konfirmasi pembayaran sungguhan.</p>`;
+        document.querySelector("#checkout-result").innerHTML = `<div class="invoice-status"><strong>Pembayaran simulasi berhasil</strong><span class="status status-paid">Lunas</span></div><div class="invoice-code">ID transaksi: <strong>${escapeHTML(invoice.id)}</strong></div><p class="invoice-instruction">${formatRupiah(invoice.amount)} tercatat untuk ${escapeHTML(invoice.studentName)} · Kelas ${escapeHTML(invoice.className)}.</p><p class="demo-warning">Status ini hanya tercatat sebagai simulasi, bukan konfirmasi pembayaran sungguhan.</p>`;
         showToast("Pembayaran simulasi berhasil dicatat.");
       }
 
@@ -1267,6 +1178,28 @@
       updateTopupSummary();
       document.querySelector(".period-wrap").hidden = true;
       render();
+
+      try {
+        const session = await apiRequest("/api/session");
+        const response = await apiRequest("/api/state");
+        if (response.state) {
+          state = response.state;
+        } else if (session.role === "pengelola") {
+          const initialized = await apiRequest("/api/state/initialize", {
+            method: "POST",
+            body: JSON.stringify({ state })
+          });
+          state = initialized.state;
+        } else {
+          throw new Error("Data kas belum disiapkan. Minta pengelola masuk terlebih dahulu.");
+        }
+        activateRole(session.role);
+      } catch (error) {
+        console.error("Aplikasi tidak dapat dimuat.", error);
+        try { await apiRequest("/api/session", { method: "DELETE" }); }
+        catch (logoutError) { console.warn("Sesi gagal dibersihkan setelah aplikasi gagal dimuat.", logoutError); }
+        window.location.replace(`/login.html?error=${encodeURIComponent(error.message)}`);
+      }
     })();
   </script>
 </body>

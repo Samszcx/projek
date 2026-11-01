@@ -11,12 +11,15 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parent
-DATA_DIR = ROOT / "data"
-DATA_FILE = DATA_DIR / "kaskita.json"
+DATA_FILE = Path(os.environ.get("KASKITA_DATA_FILE", ROOT / "data" / "kaskita.json"))
+DATA_DIR = DATA_FILE.parent
 MANAGER_PASSWORD = os.environ.get("KASKITA_MANAGER_PASSWORD", "INFORYZE26_PENGURUS")
+ACCESS_PASSWORD = os.environ.get("KASKITA_ACCESS_PASSWORD", "INFORYZE26_MAHASISWA")
+COOKIE_SECURE = os.environ.get("KASKITA_COOKIE_SECURE", "false").lower() == "true"
 MAX_BODY_BYTES = 2 * 1024 * 1024
 LOCK = threading.RLock()
 SESSIONS: dict[str, str] = {}
+PUBLIC_FILES = {"index.html", "login.html", "inforyze.jpg", "qris.jpeg"}
 
 
 def read_database() -> dict:
@@ -79,14 +82,36 @@ class KasKitaHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
+        role = self.session_role()
+        if path in ("/", "/index.html"):
+            self.serve_static("index.html" if role else "login.html")
+            return
+        if path == "/api/session":
+            if role is None:
+                self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Silakan masuk terlebih dahulu."})
+                return
+            self.send_json(HTTPStatus.OK, {"role": role})
+            return
         if path == "/api/state":
+            if role is None:
+                self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Silakan masuk terlebih dahulu."})
+                return
             database = read_database()
             self.send_json(HTTPStatus.OK, {"state": database["state"]})
             return
         if path == "/api/health":
             self.send_json(HTTPStatus.OK, {"ok": True})
             return
-        self.serve_static(path)
+        if path in ("/login.html", "/inforyze.jpg"):
+            self.serve_static(path)
+            return
+        if path in ("/qris.jpeg",) and role is not None:
+            self.serve_static(path)
+            return
+        if path in ("/qris.jpeg",):
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        self.send_error(HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
@@ -100,33 +125,61 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             if role not in ("mahasiswa", "pengelola"):
                 self.send_json(HTTPStatus.BAD_REQUEST, {"error": "Peran tidak valid."})
                 return
-            if role == "pengelola" and not secrets.compare_digest(str(payload.get("password", "")), MANAGER_PASSWORD):
-                self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Password pengelola tidak sesuai."})
+            expected_password = MANAGER_PASSWORD if role == "pengelola" else ACCESS_PASSWORD
+            if not secrets.compare_digest(str(payload.get("password", "")), expected_password):
+                self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Password tidak sesuai."})
                 return
             session_id = secrets.token_urlsafe(32)
             SESSIONS[session_id] = role
             self.send_json(HTTPStatus.OK, {"role": role}, {
-                "Set-Cookie": f"kaskita_session={session_id}; HttpOnly; SameSite=Strict; Path=/",
+                "Set-Cookie": f"kaskita_session={session_id}; HttpOnly; SameSite=Strict; Path=/"
+                + ("; Secure" if COOKIE_SECURE else ""),
             })
             return
 
         if path == "/api/logout":
             self.clear_session()
             self.send_json(HTTPStatus.OK, {"ok": True}, {
-                "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
+                "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"
+                + ("; Secure" if COOKIE_SECURE else ""),
             })
             return
 
         if path == "/api/state/initialize":
+            if self.session_role() != "pengelola":
+                self.send_json(HTTPStatus.FORBIDDEN, {"error": "Akses pengelola diperlukan."})
+                return
             state = payload.get("state")
             if not self.valid_state(state):
                 self.send_json(HTTPStatus.BAD_REQUEST, {"error": "Format data kas tidak valid."})
                 return
-            database = read_database()
-            if database["state"] is None:
+            with LOCK:
+                database = read_database()
+                if database["state"] is None:
+                    database["state"] = state
+                    write_database(database)
+                response_state = database["state"]
+            self.send_json(HTTPStatus.OK, {"state": response_state})
+            return
+
+        if path == "/api/state/import":
+            if self.session_role() != "pengelola":
+                self.send_json(HTTPStatus.FORBIDDEN, {"error": "Akses pengelola diperlukan."})
+                return
+            state = payload.get("state")
+            invoices = payload.get("invoices")
+            if not self.valid_state(state) or not self.valid_invoices(invoices):
+                self.send_json(HTTPStatus.BAD_REQUEST, {"error": "Format data migrasi tidak valid."})
+                return
+            with LOCK:
+                database = read_database()
+                if database["state"] is not None or database["invoices"]:
+                    self.send_json(HTTPStatus.CONFLICT, {"error": "Data tujuan sudah terisi; migrasi dibatalkan."})
+                    return
                 database["state"] = state
+                database["invoices"] = invoices
                 write_database(database)
-            self.send_json(HTTPStatus.OK, {"state": database["state"]})
+            self.send_json(HTTPStatus.CREATED, {"ok": True})
             return
 
         if path == "/api/invoices":
@@ -219,7 +272,8 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             return
         self.clear_session()
         self.send_json(HTTPStatus.OK, {"ok": True}, {
-            "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
+            "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"
+            + ("; Secure" if COOKIE_SECURE else ""),
         })
 
     def clear_session(self) -> None:
@@ -235,8 +289,30 @@ class KasKitaHandler(BaseHTTPRequestHandler):
                 and isinstance(state.get("expenses", {}), dict)
                 and isinstance(state.get("monthlyDues"), (int, float)))
 
+    @staticmethod
+    def valid_invoices(invoices: object) -> bool:
+        if not isinstance(invoices, dict):
+            return False
+        return all(
+            isinstance(invoice_id, str)
+            and isinstance(invoice, dict)
+            and invoice.get("id") == invoice_id
+            and isinstance(invoice.get("className"), str)
+            and isinstance(invoice.get("studentId"), str)
+            and isinstance(invoice.get("studentName"), str)
+            and isinstance(invoice.get("period"), str)
+            and isinstance(invoice.get("amount"), int)
+            and 1000 <= invoice["amount"] <= 100_000_000
+            and invoice.get("method") == "QRIS"
+            and invoice.get("status") in ("pending", "confirmed_demo")
+            for invoice_id, invoice in invoices.items()
+        )
+
     def serve_static(self, request_path: str) -> None:
         relative_path = unquote(request_path).lstrip("/") or "index.html"
+        if relative_path not in PUBLIC_FILES:
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
         target = (ROOT / relative_path).resolve()
         if ROOT not in target.parents and target != ROOT:
             self.send_error(HTTPStatus.FORBIDDEN)
@@ -258,7 +334,14 @@ class KasKitaHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     host = os.environ.get("KASKITA_HOST", "127.0.0.1")
-    port = int(os.environ.get("KASKITA_PORT", "8000"))
+    port = int(os.environ.get("KASKITA_PORT", os.environ.get("PORT", "8000")))
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        for name, password in (
+            ("KASKITA_MANAGER_PASSWORD", MANAGER_PASSWORD),
+            ("KASKITA_ACCESS_PASSWORD", ACCESS_PASSWORD),
+        ):
+            if name not in os.environ or len(password) < 16:
+                raise RuntimeError(f"{name} harus diatur dengan minimal 16 karakter saat server dapat diakses dari jaringan.")
     server = ThreadingHTTPServer((host, port), KasKitaHandler)
     print(f"INFORYZE26 berjalan di http://{host}:{port}")
     print("Password pengelola dapat diatur melalui KASKITA_MANAGER_PASSWORD.")

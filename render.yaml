@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: inforyze26
+    runtime: python
+    plan: starter
+    buildCommand: python -m compileall -q server.py
+    startCommand: python server.py
+    envVars:
+      - key: KASKITA_HOST
+        value: 0.0.0.0
+      - key: KASKITA_COOKIE_SECURE
+        value: "true"
+      - key: KASKITA_DATA_FILE
+        value: /var/data/kaskita.json
+      - key: KASKITA_MANAGER_PASSWORD
+        generateValue: true
+      - key: KASKITA_ACCESS_PASSWORD
+        generateValue: true
+    disk:
+      name: kaskita-data
+      mountPath: /var/data
+      sizeGB: 1
