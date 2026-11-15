@@ -34,15 +34,17 @@
       <div><div class="brand-name">INFORYZE</div><div class="brand-caption">Catatan kas angkatan</div></div>
     </div>
     <h1>Masuk ke INFORYZE26</h1>
-    <p class="copy">Gunakan kata sandi akses yang diberikan pengelola.</p>
+    <p class="copy">Mahasiswa bisa langsung masuk untuk melihat kas dan membayar. Pengelola memerlukan kata sandi.</p>
     <form id="login-form">
       <label for="role">Masuk sebagai</label>
       <select id="role" required>
         <option value="mahasiswa">Mahasiswa</option>
         <option value="pengelola">Pengelola</option>
       </select>
-      <label for="password" id="password-label">Kata sandi akses mahasiswa</label>
-      <input id="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required>
+      <div id="password-field" hidden>
+        <label for="password">Password pengelola</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi pengelola">
+      </div>
       <p class="error" id="error" role="alert" aria-live="polite"></p>
       <button type="submit">Masuk</button>
     </form>
@@ -50,16 +52,27 @@
   <script>
     const roleInput = document.querySelector("#role");
     const passwordInput = document.querySelector("#password");
+    const passwordField = document.querySelector("#password-field");
     const submitButton = document.querySelector("button");
     const errorMessage = document.querySelector("#error");
+    const updatePasswordField = () => {
+      const managerLogin = roleInput.value === "pengelola";
+      passwordField.hidden = !managerLogin;
+      passwordInput.required = managerLogin;
+      passwordInput.value = "";
+    };
     roleInput.addEventListener("change", () => {
-      document.querySelector("#password-label").textContent = roleInput.value === "pengelola"
-        ? "Password pengelola"
-        : "Kata sandi akses mahasiswa";
+      updatePasswordField();
       errorMessage.textContent = "";
     });
+    updatePasswordField();
     const queryError = new URLSearchParams(location.search).get("error");
-    if (queryError) errorMessage.textContent = queryError;
+    const outdatedStudentLoginMessage = "Server masih memakai versi lama. Mulai ulang atau deploy ulang server agar mahasiswa bisa masuk tanpa kata sandi.";
+    if (queryError) {
+      errorMessage.textContent = roleInput.value === "mahasiswa" && queryError === "Password tidak sesuai."
+        ? outdatedStudentLoginMessage
+        : queryError;
+    }
     document.querySelector("#login-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       submitButton.disabled = true;
@@ -68,14 +81,23 @@
         const response = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role: roleInput.value, password: passwordInput.value })
+          body: JSON.stringify({
+            role: roleInput.value,
+            ...(roleInput.value === "pengelola" ? { password: passwordInput.value } : {})
+          })
         });
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "Login gagal.");
+        if (!response.ok) {
+          const message = roleInput.value === "mahasiswa" && response.status === 401
+            ? outdatedStudentLoginMessage
+            : payload.error || "Login gagal.";
+          throw new Error(message);
+        }
         location.replace("/");
       } catch (error) {
         errorMessage.textContent = error.message || "Tidak dapat menghubungi server.";
-        passwordInput.focus();
+        if (roleInput.value === "pengelola") passwordInput.focus();
+        else roleInput.focus();
         submitButton.disabled = false;
       }
     });

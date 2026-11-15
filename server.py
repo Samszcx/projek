@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parent
 DATA_FILE = Path(os.environ.get("KASKITA_DATA_FILE", ROOT / "data" / "kaskita.json"))
 DATA_DIR = DATA_FILE.parent
 MANAGER_PASSWORD = os.environ.get("KASKITA_MANAGER_PASSWORD", "INFORYZE26_PENGURUS")
-ACCESS_PASSWORD = os.environ.get("KASKITA_ACCESS_PASSWORD", "INFORYZE26_MAHASISWA")
 COOKIE_SECURE = os.environ.get("KASKITA_COOKIE_SECURE", "false").lower() == "true"
 MAX_BODY_BYTES = 2 * 1024 * 1024
 LOCK = threading.RLock()
@@ -125,8 +124,9 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             if role not in ("mahasiswa", "pengelola"):
                 self.send_json(HTTPStatus.BAD_REQUEST, {"error": "Peran tidak valid."})
                 return
-            expected_password = MANAGER_PASSWORD if role == "pengelola" else ACCESS_PASSWORD
-            if not secrets.compare_digest(str(payload.get("password", "")), expected_password):
+            if role == "pengelola" and not secrets.compare_digest(
+                str(payload.get("password", "")), MANAGER_PASSWORD
+            ):
                 self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Password tidak sesuai."})
                 return
             session_id = secrets.token_urlsafe(32)
@@ -336,12 +336,10 @@ def main() -> None:
     host = os.environ.get("KASKITA_HOST", "127.0.0.1")
     port = int(os.environ.get("KASKITA_PORT", os.environ.get("PORT", "8000")))
     if host not in ("127.0.0.1", "localhost", "::1"):
-        for name, password in (
-            ("KASKITA_MANAGER_PASSWORD", MANAGER_PASSWORD),
-            ("KASKITA_ACCESS_PASSWORD", ACCESS_PASSWORD),
-        ):
-            if name not in os.environ or len(password) < 16:
-                raise RuntimeError(f"{name} harus diatur dengan minimal 16 karakter saat server dapat diakses dari jaringan.")
+        if "KASKITA_MANAGER_PASSWORD" not in os.environ or len(MANAGER_PASSWORD) < 16:
+            raise RuntimeError(
+                "KASKITA_MANAGER_PASSWORD harus diatur dengan minimal 16 karakter saat server dapat diakses dari jaringan."
+            )
     server = ThreadingHTTPServer((host, port), KasKitaHandler)
     print(f"INFORYZE26 berjalan di http://{host}:{port}")
     print("Password pengelola dapat diatur melalui KASKITA_MANAGER_PASSWORD.")

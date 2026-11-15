@@ -14,8 +14,6 @@ services:
         value: /var/data/kaskita.json
       - key: KASKITA_MANAGER_PASSWORD
         generateValue: true
-      - key: KASKITA_ACCESS_PASSWORD
-        generateValue: true
     disk:
       name: kaskita-data
       mountPath: /var/data

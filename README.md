@@ -8,7 +8,7 @@ Perlu Python 3.10 atau lebih baru. Dari folder proyek, jalankan:
 python server.py
 ```
 
-Buka `http://127.0.0.1:8000`. Data bersama tersimpan di `data/kaskita.json`. Untuk pengembangan lokal, kata sandi bawaan adalah `INFORYZE26_MAHASISWA` untuk akses mahasiswa dan `INFORYZE26_PENGURUS` untuk pengelola. Jangan gunakan kata sandi bawaan saat server dibuka ke jaringan.
+Buka `http://127.0.0.1:8000`. Data bersama tersimpan di `data/kaskita.json`. Mahasiswa dapat masuk tanpa kata sandi; kata sandi bawaan pengelola adalah `INFORYZE26_PENGURUS`. Jangan gunakan kata sandi bawaan saat server dibuka ke jaringan.
 
 ## Hosting di Render
 
@@ -16,7 +16,7 @@ File `render.yaml` menyiapkan layanan Python, HTTPS-only session cookie, kata sa
 
 1. Pastikan repository GitHub terhubung ke akun Render.
 2. Di Render, buat **Blueprint** dari repository ini dan tinjau konfigurasi `render.yaml`.
-3. Setelah layanan aktif, lihat `KASKITA_ACCESS_PASSWORD` dan `KASKITA_MANAGER_PASSWORD` pada Environment layanan. Bagikan kata sandi akses mahasiswa hanya kepada anggota yang perlu menggunakan aplikasi; jangan bagikan kata sandi pengelola.
+3. Setelah layanan aktif, lihat `KASKITA_MANAGER_PASSWORD` pada Environment layanan dan jangan bagikan kata sandi pengelola.
 4. Sebelum ada pengelola yang pertama kali masuk, jalankan migrasi dari folder proyek lokal:
 
    ```powershell
@@ -26,7 +26,7 @@ File `render.yaml` menyiapkan layanan Python, HTTPS-only session cookie, kata sa
    Masukkan password pengelola Render saat diminta. Script mengirim `data/kaskita.json` melalui HTTPS dan hanya menerima migrasi jika penyimpanan tujuan masih kosong. Jangan jalankan setelah data baru dibuat di Render.
 5. Setelah migrasi berhasil, uji login mahasiswa/pengelola dan pastikan data tetap ada setelah layanan dimulai ulang. Jika ingin memulai tanpa data lama, lewati migrasi; data awal dibuat saat pengelola pertama kali masuk.
 
-Kata sandi mahasiswa pada versi ini adalah satu kata sandi bersama, bukan verifikasi identitas individual. Siapa pun yang memilikinya dapat melihat data kas semua kelas. Ganti kata sandi jika tersebar, dan jangan taruh kata sandi di repository atau kirim melalui kanal publik.
+Login mahasiswa tidak memverifikasi identitas. Siapa pun yang membuka aplikasi dapat masuk sebagai mahasiswa, melihat data kas, dan mencatat konfirmasi pembayaran simulasi untuk semua kelas. Jangan gunakan aplikasi ini untuk menyimpan informasi sensitif atau mengelola uang sungguhan tanpa kontrol akses individual dan integrasi pembayaran yang sesuai.
 
 ## Catatan pembayaran
 
