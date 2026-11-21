@@ -1,5 +1,6 @@
 /**
  * INFORYZE26 - Login Page Logic
+ * Mendukung hosting statis (GitHub Pages / Vercel) dan mode server backend.
  */
 
 (() => {
@@ -44,10 +45,17 @@
   roleSelect.addEventListener("change", updateFields);
   updateFields();
 
-  // Check URL params for error
-  const queryError = new URLSearchParams(window.location.search).get("error");
+  // Check URL params for error or logout
+  const params = new URLSearchParams(window.location.search);
+  const queryError = params.get("error");
   if (queryError) {
     errorMessage.textContent = queryError;
+  }
+  if (params.get("logout")) {
+    try {
+      localStorage.removeItem("kaskita_role");
+      sessionStorage.removeItem("kaskita_role");
+    } catch (e) {}
   }
 
   loginForm.addEventListener("submit", async (e) => {
@@ -56,28 +64,53 @@
     submitButton.textContent = "Memproses...";
     errorMessage.textContent = "";
 
+    const role = roleSelect.value;
+    const password = passwordInput.value.trim();
+
+    if (role === "pengelola" && !password) {
+      errorMessage.textContent = "Masukkan kata sandi pengelola.";
+      submitButton.disabled = false;
+      submitButton.textContent = "Masuk";
+      passwordInput.focus();
+      return;
+    }
+
     try {
-      const role = roleSelect.value;
-      const body = { role };
-      if (role === "pengelola") {
-        body.password = passwordInput.value;
+      // 1. Coba login ke API backend terlebih dahulu (jika backend aktif)
+      let backendSuccess = false;
+      try {
+        const res = await fetch("api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, ...(role === "pengelola" ? { password } : {}) })
+        });
+
+        if (res.ok) {
+          backendSuccess = true;
+        } else if (res.status === 401) {
+          const payload = await res.json().catch(() => ({}));
+          throw new Error(payload.error || "Password tidak sesuai.");
+        }
+      } catch (networkErr) {
+        // Jika server menolak dengan password salah, teruskan error
+        if (networkErr.message && networkErr.message.includes("Password")) {
+          throw networkErr;
+        }
+        // Jika API tidak ditemukan (misal di GitHub Pages / static host), fallback ke validasi browser:
+        if (role === "pengelola" && password !== "INFORYZE26_PENGURUS") {
+          throw new Error("Password tidak sesuai.");
+        }
       }
 
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+      // Simpan role di penyimpanan lokal agar langsung aktif
+      localStorage.setItem("kaskita_role", role);
+      sessionStorage.setItem("kaskita_role", role);
 
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(payload.error || "Gagal masuk. Periksa kembali data Anda.");
-      }
-
-      window.location.replace("/");
+      // Arahkan ke halaman utama aplikasi
+      window.location.replace("index.html");
     } catch (err) {
-      errorMessage.textContent = err.message || "Gagal menghubungi server.";
-      if (roleSelect.value === "pengelola") {
+      errorMessage.textContent = err.message || "Gagal masuk.";
+      if (role === "pengelola") {
         passwordInput.focus();
       }
       submitButton.disabled = false;

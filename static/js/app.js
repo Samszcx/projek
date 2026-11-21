@@ -1,5 +1,6 @@
 /**
  * INFORYZE26 - Main Frontend Application Logic
+ * Mendukung hosting statis (GitHub Pages / Vercel / Netlify) & mode backend API.
  */
 
 (() => {
@@ -94,9 +95,10 @@
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
   };
 
-  // API Client
+  // API Client (dengan path relatif tanpa leading slash agar kompatibel di GitHub Pages)
   const apiRequest = async (url, options = {}) => {
-    const response = await fetch(url, {
+    const cleanUrl = url.startsWith("/") ? url.slice(1) : url;
+    const response = await fetch(cleanUrl, {
       ...options,
       headers: { "Content-Type": "application/json", ...(options.headers || {}) }
     });
@@ -159,16 +161,19 @@
     });
   };
 
-  // State Sync
+  // State Persistence (Dual Mode: localStorage + API bila ada)
   const saveState = async () => {
-    if (currentRole !== "pengelola") return;
     try {
-      await apiRequest("/api/state", {
-        method: "PUT",
-        body: JSON.stringify({ state })
-      });
-    } catch (err) {
-      showToast(err.message);
+      localStorage.setItem("kaskita_state", JSON.stringify(state));
+    } catch (e) {}
+
+    if (currentRole === "pengelola") {
+      try {
+        await apiRequest("api/state", {
+          method: "PUT",
+          body: JSON.stringify({ state })
+        });
+      } catch (err) {}
     }
   };
 
@@ -218,8 +223,6 @@
 
   // Switch Active View
   const switchTab = (tabName) => {
-    const isManager = currentRole === "pengelola";
-
     topupTab.classList.toggle("active", tabName === "topup");
     dashboardTab.classList.toggle("active", tabName === "dashboard");
     expenseTab.classList.toggle("active", tabName === "expense");
@@ -230,7 +233,6 @@
     expenseView.hidden = tabName !== "expense";
     overallView.hidden = tabName !== "overall";
 
-    // Manage header controls visibility
     const classWrap = document.querySelector("#class-wrap");
     const periodWrap = document.querySelector("#period-wrap");
 
@@ -275,7 +277,7 @@
 
     if (filtered.length) {
       emptyState.hidden = true;
-      tableBody.innerHTML = filtered.map((s, idx) => {
+      tableBody.innerHTML = filtered.map((s) => {
         const paid = studentTotalPaid(s, key);
         const due = Math.max(0, state.monthlyDues - paid);
         const status = studentStatus(s, key);
@@ -332,7 +334,7 @@
     document.querySelector("#dashboard-class-title").textContent = `Kas Kelas ${currentClass}`;
     document.querySelector("#period-label").textContent = periodText(key);
 
-    // Dynamic Circular Progress Ring in Dashboard
+    // Dynamic Circular Progress Ring
     const gaugeContainer = document.querySelector("#target-gauge-box");
     if (gaugeContainer && window.ChartEngine) {
       ChartEngine.renderCircularGauge(gaugeContainer, rate);
@@ -553,13 +555,11 @@
 
   // Event Listeners
   const bindEvents = () => {
-    // Navigation Tabs
     topupTab.addEventListener("click", () => switchTab("topup"));
     dashboardTab.addEventListener("click", () => switchTab("dashboard"));
     expenseTab.addEventListener("click", () => switchTab("expense"));
     overallTab.addEventListener("click", () => switchTab("overall"));
 
-    // Selectors
     classSelect.addEventListener("change", () => {
       state.selectedClass = classSelect.value;
       saveState();
@@ -572,7 +572,6 @@
     filterSelect.addEventListener("change", render);
     exportButton.addEventListener("click", exportCSV);
 
-    // Monthly Dues Input (Manager only)
     duesInput.addEventListener("change", () => {
       const val = Math.max(0, Number(duesInput.value) || 0);
       state.monthlyDues = val;
@@ -582,13 +581,11 @@
       showToast("Nominal iuran berhasil diperbarui.");
     });
 
-    // Student Rows Actions
     document.querySelector("#student-rows").addEventListener("click", (e) => {
       const btn = e.target.closest(".history-btn");
       if (btn) openPaymentHistory(btn.dataset.student);
     });
 
-    // Delete Payment
     document.querySelector("#payment-history").addEventListener("click", (e) => {
       const btn = e.target.closest("[data-delete-payment]");
       if (!btn) return;
@@ -605,7 +602,6 @@
       showToast("Catatan pembayaran berhasil dihapus.");
     });
 
-    // Expense Actions
     document.querySelector("#add-expense-btn").addEventListener("click", () => {
       expenseForm.reset();
       expenseDialog.showModal();
@@ -657,7 +653,6 @@
       showToast("Catatan pengeluaran dihapus.");
     });
 
-    // Close Dialogs
     document.querySelectorAll("[data-close]").forEach((btn) => {
       btn.addEventListener("click", () => btn.closest("dialog").close());
     });
@@ -667,7 +662,6 @@
       });
     });
 
-    // Topup Autocomplete & Chips
     topupStudentInput.addEventListener("input", updateAutocomplete);
 
     autocompleteList.addEventListener("click", (e) => {
@@ -698,7 +692,7 @@
 
     topupAmountInput.addEventListener("input", updateTopupSummary);
 
-    // Topup Form Submit (Create QRIS Invoice)
+    // Create Invoice (Mendukung backend API & fallback static)
     topupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const student = findTopupStudent();
@@ -715,8 +709,9 @@
         return;
       }
 
+      let invoice = null;
       try {
-        const response = await apiRequest("/api/invoices", {
+        const response = await apiRequest("api/invoices", {
           method: "POST",
           body: JSON.stringify({
             className: classSelect.value,
@@ -725,37 +720,48 @@
             period: monthKey(new Date())
           })
         });
-
-        pendingInvoice = { ...response.invoice, paid: false };
-
-        checkoutResult.innerHTML = `
-          <div class="qris-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-              <strong>Tagihan Dibuat</strong>
-              <span class="status-badge status-partial">Menunggu Pembayaran</span>
-            </div>
-            <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
-              ID Transaksi: <strong>${escapeHTML(pendingInvoice.id)}</strong>
-            </div>
-            <div class="qris-img-wrap">
-              <img src="/qris.jpeg" alt="QRIS INFORYZE26" loading="lazy">
-            </div>
-            <div style="font-size:12px; font-weight:700; margin-top:8px;">
-              Total: ${formatRupiah(pendingInvoice.amount)}
-            </div>
-            <div class="demo-box">
-              Ini adalah simulasi pembayaran kas. Setelah memindai QRIS, klik tombol di bawah untuk mencatat konfirmasi secara instan.
-            </div>
-            <button class="button button-primary" style="width:100%; margin-top:10px;" id="confirm-payment-btn" type="button">
-              Konfirmasi Pembayaran (Simulasi)
-            </button>
-          </div>
-        `;
-        checkoutResult.hidden = false;
-        showToast("Tagihan QRIS berhasil dibuat.");
+        invoice = response.invoice;
       } catch (err) {
-        showToast(err.message);
+        // Fallback untuk hosting statis (GitHub Pages / Vercel)
+        invoice = {
+          id: "KAS" + Math.random().toString(36).substring(2, 8).toUpperCase(),
+          className: classSelect.value,
+          studentId: student.id,
+          studentName: student.name,
+          period: monthKey(new Date()),
+          amount: amount,
+          method: "QRIS",
+          status: "pending"
+        };
       }
+
+      pendingInvoice = { ...invoice, paid: false };
+
+      checkoutResult.innerHTML = `
+        <div class="qris-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong>Tagihan Dibuat</strong>
+            <span class="status-badge status-partial">Menunggu Pembayaran</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+            ID Transaksi: <strong>${escapeHTML(pendingInvoice.id)}</strong>
+          </div>
+          <div class="qris-img-wrap">
+            <img src="qris.jpeg" alt="QRIS INFORYZE26" loading="lazy">
+          </div>
+          <div style="font-size:12px; font-weight:700; margin-top:8px;">
+            Total: ${formatRupiah(pendingInvoice.amount)}
+          </div>
+          <div class="demo-box">
+            Ini adalah simulasi pembayaran kas. Setelah memindai QRIS, klik tombol di bawah untuk mencatat konfirmasi secara instan.
+          </div>
+          <button class="button button-primary" style="width:100%; margin-top:10px;" id="confirm-payment-btn" type="button">
+            Konfirmasi Pembayaran (Simulasi)
+          </button>
+        </div>
+      `;
+      checkoutResult.hidden = false;
+      showToast("Tagihan QRIS berhasil dibuat.");
     });
 
     // Confirm Payment
@@ -764,27 +770,45 @@
       if (!pendingInvoice || pendingInvoice.paid) return;
 
       try {
-        const response = await apiRequest(`/api/invoices/${encodeURIComponent(pendingInvoice.id)}/confirm`, {
+        const response = await apiRequest(`api/invoices/${encodeURIComponent(pendingInvoice.id)}/confirm`, {
           method: "POST",
           body: "{}"
         });
         state = response.state;
-        pendingInvoice.paid = true;
-
-        checkoutResult.innerHTML = `
-          <div style="padding:16px; border:1px solid var(--success-border); border-radius:var(--radius-md); background:var(--success-bg); text-align:center;">
-            <div style="font-size:22px; margin-bottom:4px;">✔</div>
-            <strong style="color:var(--success); font-size:15px;">Pembayaran Berhasil Dicatat</strong>
-            <p style="font-size:12px; color:var(--text-muted); margin-top:6px;">
-              ${formatRupiah(pendingInvoice.amount)} tercatat untuk <strong>${escapeHTML(pendingInvoice.studentName)}</strong>.
-            </p>
-          </div>
-        `;
-        render();
-        showToast("Pembayaran simulasi berhasil diverifikasi.");
       } catch (err) {
-        showToast(err.message);
+        // Fallback untuk hosting statis: catat pembayaran langsung ke data kelas
+        const paidAt = new Date();
+        const dateStr = paidAt.toISOString().slice(0, 10);
+        const timeStr = paidAt.toTimeString().slice(0, 5);
+        const student = currentStudents().find((s) => s.id === pendingInvoice.studentId);
+        if (student) {
+          student.payments ||= {};
+          student.payments[pendingInvoice.period] ||= [];
+          student.payments[pendingInvoice.period].push({
+            id: globalThis.crypto?.randomUUID?.() || `${Date.now()}`,
+            amount: pendingInvoice.amount,
+            date: dateStr,
+            time: timeStr,
+            method: "QRIS",
+            invoiceId: pendingInvoice.id
+          });
+        }
+        saveState();
       }
+
+      pendingInvoice.paid = true;
+
+      checkoutResult.innerHTML = `
+        <div style="padding:16px; border:1px solid var(--success-border); border-radius:var(--radius-md); background:var(--success-bg); text-align:center;">
+          <div style="font-size:22px; margin-bottom:4px;">✔</div>
+          <strong style="color:var(--success); font-size:15px;">Pembayaran Berhasil Dicatat</strong>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:6px;">
+            ${formatRupiah(pendingInvoice.amount)} tercatat untuk <strong>${escapeHTML(pendingInvoice.studentName)}</strong>.
+          </p>
+        </div>
+      `;
+      render();
+      showToast("Pembayaran simulasi berhasil diverifikasi.");
     });
 
     // Logout
@@ -792,56 +816,98 @@
       logoutButton.disabled = true;
       logoutButton.textContent = "Keluar...";
       try {
-        await apiRequest("/api/logout", {
+        await apiRequest("api/logout", {
           method: "POST",
           body: JSON.stringify({})
         });
       } catch (err) {
         try {
-          await apiRequest("/api/session", { method: "DELETE" });
+          await apiRequest("api/session", { method: "DELETE" });
         } catch (e) {}
       }
-      // Expire client-side cookie if accessible
+      localStorage.removeItem("kaskita_role");
+      sessionStorage.removeItem("kaskita_role");
       document.cookie = "kaskita_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      window.location.replace("/login?logout=1");
+      window.location.replace("login.html?logout=1");
     });
   };
 
-  // Initialization
+  // Initialization (Dual Mode: Server API + Static Fallback)
   const init = async () => {
     initTheme();
     initClasses();
     initPeriods();
     bindEvents();
 
+    let sessionRole = null;
+
+    // 1. Cek sesi dari server jika ada backend yang berjalan
     try {
-      const session = await apiRequest("/api/session");
-      currentRole = session.role;
-      roleIndicator.textContent = currentRole === "pengelola" ? "Pengelola" : "Mahasiswa";
-
-      // Toggle elements based on role
-      document.querySelectorAll(".manager-only").forEach((el) => {
-        el.hidden = currentRole !== "pengelola";
-      });
-      topupTab.hidden = currentRole === "pengelola";
-      duesInput.disabled = currentRole !== "pengelola";
-
-      const stateResponse = await apiRequest("/api/state");
-      if (stateResponse.state) {
-        state = stateResponse.state;
+      const session = await apiRequest("api/session");
+      if (session && session.role) {
+        sessionRole = session.role;
       }
+    } catch (err) {}
 
-      classSelect.value = state.selectedClass || "A";
-      duesInput.value = state.monthlyDues || 10000;
-      updateAutocomplete();
-      updateTopupSummary();
-
-      appShell.hidden = false;
-      switchTab(currentRole === "pengelola" ? "dashboard" : "topup");
-    } catch (err) {
-      console.error("Gagal memuat sesi:", err);
-      window.location.replace("/login");
+    // 2. Jika tidak ada backend (misal GitHub Pages), ambil dari browser storage
+    if (!sessionRole) {
+      sessionRole = sessionStorage.getItem("kaskita_role") || localStorage.getItem("kaskita_role");
     }
+
+    // 3. Jika belum login, alihkan ke login.html
+    if (!sessionRole) {
+      window.location.replace("login.html");
+      return;
+    }
+
+    currentRole = sessionRole;
+    roleIndicator.textContent = currentRole === "pengelola" ? "Pengelola" : "Mahasiswa";
+
+    // Toggle tampilan berdasarkan hak akses
+    document.querySelectorAll(".manager-only").forEach((el) => {
+      el.hidden = currentRole !== "pengelola";
+    });
+    topupTab.hidden = currentRole === "pengelola";
+    duesInput.disabled = currentRole !== "pengelola";
+
+    // Muat data state (Prioritas: Server -> LocalStorage -> default_state.json)
+    let loadedState = null;
+    try {
+      const stateResponse = await apiRequest("api/state");
+      if (stateResponse && stateResponse.state) {
+        loadedState = stateResponse.state;
+      }
+    } catch (err) {}
+
+    if (!loadedState) {
+      try {
+        const local = localStorage.getItem("kaskita_state");
+        if (local) loadedState = JSON.parse(local);
+      } catch (e) {}
+    }
+
+    if (!loadedState) {
+      try {
+        const defRes = await fetch("data/default_state.json");
+        if (defRes.ok) {
+          const defData = await defRes.json();
+          if (defData && defData.state) loadedState = defData.state;
+        }
+      } catch (e) {}
+    }
+
+    if (loadedState) {
+      state = loadedState;
+      try { localStorage.setItem("kaskita_state", JSON.stringify(state)); } catch (e) {}
+    }
+
+    classSelect.value = state.selectedClass || "A";
+    duesInput.value = state.monthlyDues || 10000;
+    updateAutocomplete();
+    updateTopupSummary();
+
+    appShell.hidden = false;
+    switchTab(currentRole === "pengelola" ? "dashboard" : "topup");
   };
 
   document.addEventListener("DOMContentLoaded", init);
