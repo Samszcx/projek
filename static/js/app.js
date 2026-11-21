@@ -789,10 +789,21 @@
 
     // Logout
     logoutButton.addEventListener("click", async () => {
+      logoutButton.disabled = true;
+      logoutButton.textContent = "Keluar...";
       try {
-        await apiRequest("/api/logout", { method: "POST" });
-      } catch (err) {}
-      window.location.replace("/login");
+        await apiRequest("/api/logout", {
+          method: "POST",
+          body: JSON.stringify({})
+        });
+      } catch (err) {
+        try {
+          await apiRequest("/api/session", { method: "DELETE" });
+        } catch (e) {}
+      }
+      // Expire client-side cookie if accessible
+      document.cookie = "kaskita_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      window.location.replace("/login?logout=1");
     });
   };
 

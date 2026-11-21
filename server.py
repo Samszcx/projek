@@ -15,6 +15,7 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
 DATA_FILE = Path(os.environ.get("KASKITA_DATA_FILE", ROOT / "data" / "kaskita.json"))
+DEFAULT_DATA_FILE = ROOT / "data" / "default_state.json"
 DATA_DIR = DATA_FILE.parent
 MANAGER_PASSWORD = os.environ.get("KASKITA_MANAGER_PASSWORD", "INFORYZE26_PENGURUS")
 COOKIE_SECURE = os.environ.get("KASKITA_COOKIE_SECURE", "false").lower() == "true"
@@ -35,9 +36,34 @@ MIME_TYPES = {
 }
 
 
+def clear_cookie_header() -> str:
+    return (
+        "kaskita_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0; "
+        "Expires=Thu, 01 Jan 1970 00:00:00 GMT"
+        + ("; Secure" if COOKIE_SECURE else "")
+    )
+
+
+def get_default_database() -> dict:
+    if DEFAULT_DATA_FILE.exists():
+        try:
+            val = json.loads(DEFAULT_DATA_FILE.read_text(encoding="utf-8"))
+            if isinstance(val, dict):
+                val.setdefault("state", None)
+                val.setdefault("invoices", {})
+                return val
+        except (OSError, json.JSONDecodeError):
+            pass
+    return {"state": None, "invoices": {}}
+
+
 def read_database() -> dict:
     with LOCK:
         if not DATA_FILE.exists():
+            default_data = get_default_database()
+            if default_data.get("state") is not None:
+                write_database(default_data)
+                return default_data
             return {"state": None, "invoices": {}}
         try:
             value = json.loads(DATA_FILE.read_text(encoding="utf-8"))
@@ -98,12 +124,24 @@ class KasKitaHandler(BaseHTTPRequestHandler):
         cookie.load(self.headers.get("Cookie", ""))
         morsel = cookie.get("kaskita_session")
         if morsel:
-            SESSIONS.pop(morsel.value, None)
+            val = morsel.value.strip('"\'')
+            with LOCK:
+                SESSIONS.pop(val, None)
+                SESSIONS.pop(morsel.value, None)
 
     def do_GET(self) -> None:
         parsed_url = urlparse(self.path)
         path = unquote(parsed_url.path)
         role = self.session_role()
+
+        # Explicit logout
+        if path in ("/logout", "/api/logout"):
+            self.clear_session()
+            self.send_response(HTTPStatus.FOUND)
+            self.send_header("Location", "/login")
+            self.send_header("Set-Cookie", clear_cookie_header())
+            self.end_headers()
+            return
 
         # Web pages
         if path in ("/", "/index.html"):
@@ -114,6 +152,9 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             return
 
         if path in ("/login", "/login.html"):
+            if "logout" in parsed_url.query:
+                self.clear_session()
+                role = None
             if role:
                 self.send_response(HTTPStatus.FOUND)
                 self.send_header("Location", "/")
@@ -173,6 +214,15 @@ class KasKitaHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+
+        # Handle logout before reading body (logout does not require a payload)
+        if path in ("/api/logout", "/logout"):
+            self.clear_session()
+            self.send_json(HTTPStatus.OK, {"ok": True}, {
+                "Set-Cookie": clear_cookie_header(),
+            })
+            return
+
         payload = self.read_json()
         if payload is None:
             self.send_json(HTTPStatus.BAD_REQUEST, {"error": "Body JSON tidak valid."})
@@ -189,17 +239,10 @@ class KasKitaHandler(BaseHTTPRequestHandler):
                 self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Password tidak sesuai."})
                 return
             session_id = secrets.token_urlsafe(32)
-            SESSIONS[session_id] = role
+            with LOCK:
+                SESSIONS[session_id] = role
             self.send_json(HTTPStatus.OK, {"role": role}, {
                 "Set-Cookie": f"kaskita_session={session_id}; HttpOnly; SameSite=Lax; Path=/"
-                + ("; Secure" if COOKIE_SECURE else ""),
-            })
-            return
-
-        if path == "/api/logout":
-            self.clear_session()
-            self.send_json(HTTPStatus.OK, {"ok": True}, {
-                "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0"
                 + ("; Secure" if COOKIE_SECURE else ""),
             })
             return
@@ -325,13 +368,13 @@ class KasKitaHandler(BaseHTTPRequestHandler):
         self.send_json(HTTPStatus.OK, {"ok": True})
 
     def do_DELETE(self) -> None:
-        if urlparse(self.path).path != "/api/session":
+        path = urlparse(self.path).path
+        if path not in ("/api/session", "/api/logout"):
             self.send_json(HTTPStatus.NOT_FOUND, {"error": "Endpoint tidak ditemukan."})
             return
         self.clear_session()
         self.send_json(HTTPStatus.OK, {"ok": True}, {
-            "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0"
-            + ("; Secure" if COOKIE_SECURE else ""),
+            "Set-Cookie": clear_cookie_header(),
         })
 
     @staticmethod
@@ -380,17 +423,35 @@ class KasKitaHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
+def get_local_ip() -> str:
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
 def main() -> None:
-    host = os.environ.get("KASKITA_HOST", "127.0.0.1")
+    host = os.environ.get("KASKITA_HOST", "0.0.0.0")
     port = int(os.environ.get("KASKITA_PORT", os.environ.get("PORT", "8000")))
-    if host not in ("127.0.0.1", "localhost", "::1"):
-        if "KASKITA_MANAGER_PASSWORD" not in os.environ or len(MANAGER_PASSWORD) < 16:
-            raise RuntimeError(
-                "KASKITA_MANAGER_PASSWORD harus diatur dengan minimal 16 karakter saat server dapat diakses dari jaringan."
-            )
+    local_ip = get_local_ip()
+
     server = ThreadingHTTPServer((host, port), KasKitaHandler)
-    print(f"INFORYZE26 berjalan di http://{host}:{port}")
-    print("Password pengelola dapat diatur melalui KASKITA_MANAGER_PASSWORD.")
+    print("=" * 60)
+    print("  INFORYZE26 - Server Siap & Berjalan")
+    print("=" * 60)
+    print(f"  > Akses Lokal (Browser):  http://localhost:{port}")
+    if local_ip != "127.0.0.1":
+        print(f"  > Akses Jaringan/HP (Wi-Fi): http://{local_ip}:{port}")
+    print(f"  > Host Binding:           {host}:{port}")
+    print(f"  > Password Pengelola:     {MANAGER_PASSWORD}")
+    print("=" * 60)
+    print("Tekan Ctrl+C untuk menghentikan server.\n")
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:

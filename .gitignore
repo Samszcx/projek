@@ -1,2 +1,5 @@
-/data/
 /__pycache__/
+*.tmp
+/data/*.tmp
+/data/kaskita.json
+!/data/default_state.json

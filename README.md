@@ -1,33 +1,55 @@
-# INFORYZE26
+# INFORYZE26 - Sistem Kas Angkatan
 
-## Menjalankan aplikasi secara lokal
+Aplikasi pengelolaan kas kelas dan angkatan Informatika 26 dengan backend Python (tanpa dependensi eksternal) dan frontend modern berbasis JavaScript.
 
-Perlu Python 3.10 atau lebih baru. Dari folder proyek, jalankan:
+## Menjalankan Aplikasi
+
+Pastikan Python 3.10 atau lebih baru sudah terpasang. Dari folder proyek, jalankan:
 
 ```powershell
 python server.py
 ```
 
-Buka `http://127.0.0.1:8000`. Data bersama tersimpan di `data/kaskita.json`. Mahasiswa dapat masuk tanpa kata sandi; kata sandi bawaan pengelola adalah `INFORYZE26_PENGURUS`. Jangan gunakan kata sandi bawaan saat server dibuka ke jaringan.
+Server otomatis berjalan pada mode **semua antarmuka jaringan (`0.0.0.0`)**:
 
-## Hosting di Render
+* **Akses dari Laptop/PC**: `http://localhost:8000` atau `http://127.0.0.1:8000`
+* **Akses dari HP / Perangkat Lain (Satu Wi-Fi)**: `http://<IP-Laptop>:8000` (contoh: `http://192.168.18.40:8000`)
+  * *IP jaringan Anda akan langsung ditampilkan di terminal saat server dijalankan.*
 
-File `render.yaml` menyiapkan layanan Python, HTTPS-only session cookie, kata sandi acak, dan disk persisten untuk data. Disk persisten memerlukan paket Render berbayar; tanpa disk, data bisa hilang saat layanan dibuat ulang.
+### Akun & Hak Akses
+* **Mahasiswa**: Dapat langsung masuk tanpa kata sandi untuk melihat rekap dan melakukan simulasi pembayaran kas via QRIS.
+* **Pengelola / Pengurus**: Memerlukan kata sandi pengelola. Password bawaan: `INFORYZE26_PENGURUS` (dapat diubah melalui *environment variable* `KASKITA_MANAGER_PASSWORD`).
 
-1. Pastikan repository GitHub terhubung ke akun Render.
-2. Di Render, buat **Blueprint** dari repository ini dan tinjau konfigurasi `render.yaml`.
-3. Setelah layanan aktif, lihat `KASKITA_MANAGER_PASSWORD` pada Environment layanan dan jangan bagikan kata sandi pengelola.
-4. Sebelum ada pengelola yang pertama kali masuk, jalankan migrasi dari folder proyek lokal:
+---
 
-   ```powershell
-   python migrate_data.py https://URL-LAYANAN-ANDA.onrender.com
-   ```
+## Push ke GitHub
 
-   Masukkan password pengelola Render saat diminta. Script mengirim `data/kaskita.json` melalui HTTPS dan hanya menerima migrasi jika penyimpanan tujuan masih kosong. Jangan jalankan setelah data baru dibuat di Render.
-5. Setelah migrasi berhasil, uji login mahasiswa/pengelola dan pastikan data tetap ada setelah layanan dimulai ulang. Jika ingin memulai tanpa data lama, lewati migrasi; data awal dibuat saat pengelola pertama kali masuk.
+Proyek ini sudah dilengkapi dengan template data bawaan (`data/default_state.json`) dan konfigurasi `.gitignore` yang bersih:
 
-Login mahasiswa tidak memverifikasi identitas. Siapa pun yang membuka aplikasi dapat masuk sebagai mahasiswa, melihat data kas, dan mencatat konfirmasi pembayaran simulasi untuk semua kelas. Jangan gunakan aplikasi ini untuk menyimpan informasi sensitif atau mengelola uang sungguhan tanpa kontrol akses individual dan integrasi pembayaran yang sesuai.
+1. Buat repository baru di GitHub (misal: `inforyze26`).
+2. Jalankan perintah git berikut dari terminal proyek:
 
-## Catatan pembayaran
+```bash
+git add .
+git commit -m "Update: backend, frontend modular, dan network access 0.0.0.0"
+git branch -M main
+git remote add origin https://github.com/USERNAME/inforyze26.git
+git push -u origin main
+```
 
-Konfirmasi QRIS di aplikasi ini masih simulasi. Backend belum terhubung ke penyedia pembayaran, sehingga konfirmasi tidak membuktikan transfer benar-benar diterima. Jangan gunakan untuk mengelola uang sungguhan sebelum integrasi gateway pembayaran dan verifikasi webhook ditambahkan.
+*(Jika remote `origin` sudah ada, cukup jalankan `git push origin main`)*
+
+---
+
+## Hosting di Render / Cloud
+
+File `render.yaml` sudah disiapkan untuk deployment satu klik di [Render](https://render.com) (atau platform lain seperti Railway / Koyeb):
+
+1. Hubungkan repository GitHub Anda ke Render.
+2. Buat **New Blueprint** dan pilih repository ini.
+3. Render akan otomatis mendeteksi konfigurasi `render.yaml`, menyetel host ke `0.0.0.0`, dan menginisialisasi database dari template.
+
+---
+
+## Catatan Simulasi QRIS
+Konfirmasi pembayaran QRIS pada aplikasi ini adalah simulasi pencatatan kas internal dan belum terhubung ke gateway pembayaran perbankan riil.
