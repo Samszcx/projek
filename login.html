@@ -8,99 +8,52 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root { color-scheme: light; font-family: "DM Sans", sans-serif; color: #1d2d45; background: #f4f8fd; }
-    * { box-sizing: border-box; }
-    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; }
-    .panel { width: min(440px, 100%); padding: 34px; background: #fff; border: 1px solid #dce6f2; border-radius: 15px; box-shadow: 0 24px 64px rgba(35, 76, 130, .13); }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; }
-    .brand-name { font: 700 19px "Space Grotesk", sans-serif; }
-    .brand-caption, .copy { color: #6b7c94; }
-    h1 { margin: 27px 0 8px; font: 600 29px/1.15 "Space Grotesk", sans-serif; }
-    .copy { margin: 0 0 24px; line-height: 1.5; }
-    label { display: block; margin: 0 0 7px; font-size: 13px; font-weight: 600; }
-    select, input, button { width: 100%; min-height: 46px; border-radius: 8px; font: inherit; }
-    select, input { margin-bottom: 16px; padding: 0 12px; color: #1d2d45; border: 1px solid #d4e0ee; background: #fbfdff; }
-    button { border: 0; background: #1f5fbf; color: #fff; font-weight: 700; cursor: pointer; }
-    button:disabled { opacity: .65; cursor: wait; }
-    .error { min-height: 20px; margin: 0 0 10px; color: #a64d40; font-size: 13px; }
-  </style>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem("kaskita-theme") === "dark" ? "dark" : "light";
+    } catch (e) {}
+  </script>
 </head>
-<body>
-  <main class="panel">
-    <div class="brand">
-      <img src="/inforyze.jpg" alt="">
-      <div><div class="brand-name">INFORYZE</div><div class="brand-caption">Catatan kas angkatan</div></div>
-    </div>
-    <h1>Masuk ke INFORYZE26</h1>
-    <p class="copy">Mahasiswa bisa langsung masuk untuk melihat kas dan membayar. Pengelola memerlukan kata sandi.</p>
-    <form id="login-form">
-      <label for="role">Masuk sebagai</label>
-      <select id="role" required>
-        <option value="mahasiswa">Mahasiswa</option>
-        <option value="pengelola">Pengelola</option>
-      </select>
-      <div id="password-field" hidden>
-        <label for="password">Password pengelola</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi pengelola">
+<body class="login-body">
+  <div style="position: absolute; top: 20px; right: 20px;">
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ganti mode tema">☾</button>
+  </div>
+
+  <main class="login-card">
+    <div class="login-brand">
+      <img src="/inforyze.jpg" alt="Logo INFORYZE">
+      <div>
+        <div class="brand-name" style="color: var(--text-main);">INFORYZE26</div>
+        <div class="brand-caption" style="color: var(--text-muted);">Sistem Kas & Iuran Angkatan</div>
       </div>
-      <p class="error" id="error" role="alert" aria-live="polite"></p>
-      <button type="submit">Masuk</button>
+    </div>
+
+    <h1 class="login-title">Masuk ke INFORYZE26</h1>
+    <p class="login-copy">Mahasiswa dapat langsung masuk untuk bayar kas. Pengelola memerlukan kata sandi.</p>
+
+    <form id="login-form">
+      <div class="field-group">
+        <label class="field-label" for="role">Masuk sebagai</label>
+        <select class="input-text" id="role" required>
+          <option value="mahasiswa">Mahasiswa</option>
+          <option value="pengelola">Pengelola / Pengurus</option>
+        </select>
+      </div>
+
+      <div class="field-group" id="password-field" hidden>
+        <label class="field-label" for="password">Password Pengelola</label>
+        <input class="input-text" id="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi pengelola">
+      </div>
+
+      <p class="login-error" id="error-message" role="alert" aria-live="polite"></p>
+
+      <button class="button button-primary" id="submit-btn" type="submit" style="width: 100%; padding: 12px;">
+        Masuk
+      </button>
     </form>
   </main>
-  <script>
-    const roleInput = document.querySelector("#role");
-    const passwordInput = document.querySelector("#password");
-    const passwordField = document.querySelector("#password-field");
-    const submitButton = document.querySelector("button");
-    const errorMessage = document.querySelector("#error");
-    const updatePasswordField = () => {
-      const managerLogin = roleInput.value === "pengelola";
-      passwordField.hidden = !managerLogin;
-      passwordInput.required = managerLogin;
-      passwordInput.value = "";
-    };
-    roleInput.addEventListener("change", () => {
-      updatePasswordField();
-      errorMessage.textContent = "";
-    });
-    updatePasswordField();
-    const queryError = new URLSearchParams(location.search).get("error");
-    const outdatedStudentLoginMessage = "Server masih memakai versi lama. Mulai ulang atau deploy ulang server agar mahasiswa bisa masuk tanpa kata sandi.";
-    if (queryError) {
-      errorMessage.textContent = roleInput.value === "mahasiswa" && queryError === "Password tidak sesuai."
-        ? outdatedStudentLoginMessage
-        : queryError;
-    }
-    document.querySelector("#login-form").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      submitButton.disabled = true;
-      errorMessage.textContent = "";
-      try {
-        const response = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            role: roleInput.value,
-            ...(roleInput.value === "pengelola" ? { password: passwordInput.value } : {})
-          })
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-          const message = roleInput.value === "mahasiswa" && response.status === 401
-            ? outdatedStudentLoginMessage
-            : payload.error || "Login gagal.";
-          throw new Error(message);
-        }
-        location.replace("/");
-      } catch (error) {
-        errorMessage.textContent = error.message || "Tidak dapat menghubungi server.";
-        if (roleInput.value === "pengelola") passwordInput.focus();
-        else roleInput.focus();
-        submitButton.disabled = false;
-      }
-    });
-  </script>
+
+  <script src="/static/js/login.js"></script>
 </body>
 </html>

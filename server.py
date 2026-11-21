@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 import os
 import secrets
 import threading
+from datetime import datetime
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -11,6 +13,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parent
+STATIC_DIR = ROOT / "static"
 DATA_FILE = Path(os.environ.get("KASKITA_DATA_FILE", ROOT / "data" / "kaskita.json"))
 DATA_DIR = DATA_FILE.parent
 MANAGER_PASSWORD = os.environ.get("KASKITA_MANAGER_PASSWORD", "INFORYZE26_PENGURUS")
@@ -18,7 +21,18 @@ COOKIE_SECURE = os.environ.get("KASKITA_COOKIE_SECURE", "false").lower() == "tru
 MAX_BODY_BYTES = 2 * 1024 * 1024
 LOCK = threading.RLock()
 SESSIONS: dict[str, str] = {}
-PUBLIC_FILES = {"index.html", "login.html", "inforyze.jpg", "qris.jpeg"}
+
+MIME_TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+}
 
 
 def read_database() -> dict:
@@ -45,7 +59,7 @@ def write_database(value: dict) -> None:
 
 
 class KasKitaHandler(BaseHTTPRequestHandler):
-    server_version = "INFORYZE26/1.0"
+    server_version = "INFORYZE26/2.0"
 
     def log_message(self, format: str, *args) -> None:
         print(f"{self.log_date_time_string()} {self.address_string()} {format % args}")
@@ -79,18 +93,43 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             return None
         return SESSIONS.get(morsel.value)
 
+    def clear_session(self) -> None:
+        cookie = SimpleCookie()
+        cookie.load(self.headers.get("Cookie", ""))
+        morsel = cookie.get("kaskita_session")
+        if morsel:
+            SESSIONS.pop(morsel.value, None)
+
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
+        parsed_url = urlparse(self.path)
+        path = unquote(parsed_url.path)
         role = self.session_role()
+
+        # Web pages
         if path in ("/", "/index.html"):
-            self.serve_static("index.html" if role else "login.html")
+            if role:
+                self.serve_file(ROOT / "index.html")
+            else:
+                self.serve_file(ROOT / "login.html")
             return
+
+        if path in ("/login", "/login.html"):
+            if role:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+            self.serve_file(ROOT / "login.html")
+            return
+
+        # APIs
         if path == "/api/session":
             if role is None:
                 self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Silakan masuk terlebih dahulu."})
                 return
             self.send_json(HTTPStatus.OK, {"role": role})
             return
+
         if path == "/api/state":
             if role is None:
                 self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Silakan masuk terlebih dahulu."})
@@ -98,18 +137,38 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             database = read_database()
             self.send_json(HTTPStatus.OK, {"state": database["state"]})
             return
+
         if path == "/api/health":
             self.send_json(HTTPStatus.OK, {"ok": True})
             return
-        if path in ("/login.html", "/inforyze.jpg"):
-            self.serve_static(path)
-            return
-        if path in ("/qris.jpeg",) and role is not None:
-            self.serve_static(path)
-            return
-        if path in ("/qris.jpeg",):
+
+        # Static assets
+        if path.startswith("/static/"):
+            relative = path.removeprefix("/static/").lstrip("/")
+            file_path = (STATIC_DIR / relative).resolve()
+            if STATIC_DIR in file_path.parents and file_path.is_file():
+                self.serve_file(file_path)
+                return
             self.send_error(HTTPStatus.NOT_FOUND)
             return
+
+        # Legacy and direct static file paths
+        direct_files = {
+            "inforyze.jpg": ROOT / "inforyze.jpg",
+            "qris.jpeg": ROOT / "qris.jpeg",
+            "index.html": ROOT / "index.html",
+            "login.html": ROOT / "login.html",
+        }
+        filename = path.lstrip("/")
+        if filename in direct_files:
+            if filename == "qris.jpeg" and role is None:
+                self.send_error(HTTPStatus.FORBIDDEN)
+                return
+            file_path = direct_files[filename]
+            if file_path.is_file():
+                self.serve_file(file_path)
+                return
+
         self.send_error(HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
@@ -132,7 +191,7 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             session_id = secrets.token_urlsafe(32)
             SESSIONS[session_id] = role
             self.send_json(HTTPStatus.OK, {"role": role}, {
-                "Set-Cookie": f"kaskita_session={session_id}; HttpOnly; SameSite=Strict; Path=/"
+                "Set-Cookie": f"kaskita_session={session_id}; HttpOnly; SameSite=Lax; Path=/"
                 + ("; Secure" if COOKIE_SECURE else ""),
             })
             return
@@ -140,7 +199,7 @@ class KasKitaHandler(BaseHTTPRequestHandler):
         if path == "/api/logout":
             self.clear_session()
             self.send_json(HTTPStatus.OK, {"ok": True}, {
-                "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"
+                "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0"
                 + ("; Secure" if COOKIE_SECURE else ""),
             })
             return
@@ -194,7 +253,7 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             amount = payload.get("amount")
             if (not isinstance(state, dict) or class_name not in state.get("classes", {})
                     or not isinstance(student_id, str) or not isinstance(period, str)
-                    or not isinstance(amount, (int, float)) or amount < 1000 or amount > 100000000):
+                    or not isinstance(amount, (int, float)) or amount < 1000 or amount > 100_000_000):
                 self.send_json(HTTPStatus.BAD_REQUEST, {"error": "Data tagihan tidak valid."})
                 return
             student = next((item for item in state["classes"][class_name] if item.get("id") == student_id), None)
@@ -232,7 +291,6 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             if student is None:
                 self.send_json(HTTPStatus.NOT_FOUND, {"error": "Mahasiswa tidak terdaftar."})
                 return
-            from datetime import datetime
             paid_at = datetime.now().astimezone()
             student.setdefault("payments", {}).setdefault(invoice["period"], []).append({
                 "id": secrets.token_urlsafe(12),
@@ -272,16 +330,9 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             return
         self.clear_session()
         self.send_json(HTTPStatus.OK, {"ok": True}, {
-            "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0"
+            "Set-Cookie": "kaskita_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0"
             + ("; Secure" if COOKIE_SECURE else ""),
         })
-
-    def clear_session(self) -> None:
-        cookie = SimpleCookie()
-        cookie.load(self.headers.get("Cookie", ""))
-        morsel = cookie.get("kaskita_session")
-        if morsel:
-            SESSIONS.pop(morsel.value, None)
 
     @staticmethod
     def valid_state(state: object) -> bool:
@@ -308,26 +359,23 @@ class KasKitaHandler(BaseHTTPRequestHandler):
             for invoice_id, invoice in invoices.items()
         )
 
-    def serve_static(self, request_path: str) -> None:
-        relative_path = unquote(request_path).lstrip("/") or "index.html"
-        if relative_path not in PUBLIC_FILES:
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
-        target = (ROOT / relative_path).resolve()
-        if ROOT not in target.parents and target != ROOT:
-            self.send_error(HTTPStatus.FORBIDDEN)
-            return
+    def serve_file(self, target: Path) -> None:
         if not target.is_file():
             self.send_error(HTTPStatus.NOT_FOUND)
             return
-        content_type = "text/html; charset=utf-8" if target.suffix == ".html" else None
-        if content_type is None:
-            import mimetypes
+        content_type = MIME_TYPES.get(target.suffix.lower())
+        if not content_type:
             content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+
         body = target.read_bytes()
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        # Static files can be cached briefly; HTML should re-check
+        if target.suffix == ".html":
+            self.send_header("Cache-Control", "no-cache")
+        else:
+            self.send_header("Cache-Control", "public, max-age=3600")
         self.end_headers()
         self.wfile.write(body)
 
