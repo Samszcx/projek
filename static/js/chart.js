@@ -67,38 +67,6 @@ const ChartEngine = (() => {
   };
 
   /**
-   * Renders a Cashflow Breakdown visual bar (Income vs Expenses vs Saldo).
-   * @param {HTMLElement} container
-   * @param {number} income
-   * @param {number} expense
-   */
-  const renderCashflowVisual = (container, income, expense) => {
-    if (!container) return;
-
-    const total = Math.max(income, expense, 1);
-    const expensePercent = Math.min(100, Math.round((expense / (income || 1)) * 100));
-    const incomePercent = 100;
-    const balance = Math.max(0, income - expense);
-
-    container.innerHTML = `
-      <div class="cashflow-bar-track" aria-label="Visualisasi Pengeluaran terhadap Pemasukan">
-        <div class="cashflow-bar-segment expense" style="width: ${Math.min(100, (expense / total) * 100)}%;" title="Pengeluaran: ${formatRupiah(expense)}"></div>
-        <div class="cashflow-bar-segment income" style="width: ${Math.max(0, (balance / total) * 100)}%;" title="Sisa Saldo: ${formatRupiah(balance)}"></div>
-      </div>
-      <div class="cashflow-legend">
-        <div class="legend-item">
-          <span class="legend-dot" style="background: var(--danger);"></span>
-          <span>Pengeluaran (${expensePercent}% dari pemasukan)</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot" style="background: var(--success);"></span>
-          <span>Sisa Kas (${formatRupiah(balance)})</span>
-        </div>
-      </div>
-    `;
-  };
-
-  /**
    * Renders an SVG Circular Progress Ring Gauge.
    * @param {HTMLElement} container
    * @param {number} rate
@@ -133,7 +101,6 @@ const ChartEngine = (() => {
     getAvatarColor,
     formatRupiah,
     renderClassComparison,
-    renderCashflowVisual,
     renderCircularGauge
   };
 })();

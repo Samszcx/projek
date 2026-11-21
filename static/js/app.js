@@ -349,12 +349,6 @@
     document.querySelector("#class-income-total").textContent = formatRupiah(collected);
     document.querySelector("#class-cash-balance").textContent = formatRupiah(collected - classExpenseTotal);
 
-    // Cashflow Visual
-    const cashflowContainer = document.querySelector("#cashflow-visual-box");
-    if (cashflowContainer && window.ChartEngine) {
-      ChartEngine.renderCashflowVisual(cashflowContainer, collected, classExpenseTotal);
-    }
-
     const expenseTable = document.querySelector("#expense-rows");
     if (classExpenses.length) {
       expenseTable.innerHTML = classExpenses.slice().sort((a, b) => b.date.localeCompare(a.date) || (b.time || "").localeCompare(a.time || "")).map((exp) => {

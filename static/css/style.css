@@ -619,50 +619,6 @@ h2 {
   color: var(--text-main);
 }
 
-/* Cashflow distribution visual bar */
-.cashflow-bar-track {
-  display: flex;
-  width: 100%;
-  height: 24px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--border);
-  margin: 12px 0 16px;
-}
-
-.cashflow-bar-segment {
-  height: 100%;
-  transition: width 0.4s ease;
-}
-
-.cashflow-bar-segment.income {
-  background: var(--success);
-}
-
-.cashflow-bar-segment.expense {
-  background: var(--danger);
-}
-
-.cashflow-legend {
-  display: flex;
-  gap: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
 /* ============================================================
    TOOLBAR & FILTER CONTROLS
    ============================================================ */
