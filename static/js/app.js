@@ -260,7 +260,7 @@
 
     // Filter Students
     const filtered = students.filter((s) => {
-      const matches = s.name.toLocaleLowerCase("id-ID").includes(query);
+      const matches = s.name.toLocaleLowerCase("id-ID").includes(query) || (s.npm || "").includes(query);
       if (!matches) return false;
       if (filter === "all") return true;
       return studentStatus(s, key) === filter;
@@ -292,7 +292,7 @@
                 <div class="avatar" style="background:${avatarColor};">${escapeHTML(initials)}</div>
                 <div>
                   <div class="student-name">${escapeHTML(s.name)}</div>
-                  <div class="student-sub">Iuran ${escapeHTML(periodText(key))}</div>
+                  <div class="student-sub">${s.npm ? `NPM ${escapeHTML(s.npm)}` : `Iuran ${escapeHTML(periodText(key))}`}</div>
                 </div>
               </div>
             </td>
@@ -525,7 +525,7 @@
   // CSV Export
   const exportCSV = () => {
     const key = periodSelect.value;
-    const rows = [["Nama Mahasiswa", "Kelas", "Periode", "Target Iuran", "Sudah Dibayar", "Kekurangan", "Status"]];
+    const rows = [["Nama Mahasiswa", "NPM", "Kelas", "Periode", "Target Iuran", "Sudah Dibayar", "Kekurangan", "Status"]];
     const students = currentStudents().slice().sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
 
     students.forEach((s) => {
@@ -533,7 +533,7 @@
       const due = Math.max(0, state.monthlyDues - paid);
       const status = studentStatus(s, key);
       const statusText = status === "paid" ? "Lunas" : status === "partial" ? "Cicilan" : "Belum bayar";
-      rows.push([s.name, classSelect.value, periodText(key), state.monthlyDues, paid, due, statusText]);
+      rows.push([s.name, s.npm || "-", classSelect.value, periodText(key), state.monthlyDues, paid, due, statusText]);
     });
 
     const csvContent = "\uFEFF" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n");
@@ -888,6 +888,27 @@
           if (defData && defData.state) loadedState = defData.state;
         }
       } catch (e) {}
+    } else {
+      // Lengkapi data NPM dari default_state.json jika state lama belum memiliki field npm
+      const missingNpm = CLASS_NAMES.some((cls) => (loadedState.classes?.[cls] || []).some((s) => !s.npm));
+      if (missingNpm) {
+        try {
+          const defRes = await fetch("data/default_state.json");
+          if (defRes.ok) {
+            const defData = await defRes.json();
+            const defClasses = defData?.state?.classes || {};
+            CLASS_NAMES.forEach((cls) => {
+              const npmById = new Map((defClasses[cls] || []).map((s) => [s.id, s.npm]));
+              const npmByName = new Map((defClasses[cls] || []).map((s) => [s.name.toLowerCase(), s.npm]));
+              (loadedState.classes?.[cls] || []).forEach((s) => {
+                if (!s.npm) {
+                  s.npm = npmById.get(s.id) || npmByName.get(s.name.toLowerCase()) || "";
+                }
+              });
+            });
+          }
+        } catch (e) {}
+      }
     }
 
     if (loadedState) {
