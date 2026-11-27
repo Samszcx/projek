@@ -4,8 +4,8 @@
  * sesuai dengan project Supabase Anda (Settings -> Data API & API Keys).
  */
 (() => {
-  const SUPABASE_URL = "GANTI_DENGAN_PROJECT_URL_SUPABASE";
-  const SUPABASE_ANON_KEY = "GANTI_DENGAN_ANON_KEY_SUPABASE";
+  const SUPABASE_URL = "https://yryvvkbtcmxhvtqwkkzv.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_jOfvt4z8LKPLV_0ziRKL0g_-MJ4pYaT";
   const SUPABASE_MANAGER_EMAIL = "pengurus@inforyze26.id";
 
   const isConfigured =

@@ -194,6 +194,10 @@
     ]);
 
     if (studentsRes.error) throw studentsRes.error;
+    if (!(studentsRes.data || []).length) {
+      showToast("Tabel students di Supabase masih kosong. Jalankan supabase_seed.sql di SQL Editor.");
+      return null;
+    }
 
     const nextState = {
       monthlyDues: Number(settingsRes.data?.value ?? 10000) || 10000,
