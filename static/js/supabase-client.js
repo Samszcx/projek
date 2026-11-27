@@ -6,7 +6,7 @@
 (() => {
   const SUPABASE_URL = "https://yryvvkbtcmxhvtqwkkzv.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_jOfvt4z8LKPLV_0ziRKL0g_-MJ4pYaT";
-  const SUPABASE_MANAGER_EMAIL = "pengurus@inforyze26.id";
+  const SUPABASE_MANAGER_EMAIL = "inforyze26@gmail.com";
 
   const isConfigured =
     SUPABASE_URL.startsWith("https://") &&
