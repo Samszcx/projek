@@ -4,6 +4,7 @@
  */
 
 (() => {
+  const nameInput = document.querySelector("#login-name");
   const roleSelect = document.querySelector("#role");
   const passwordField = document.querySelector("#password-field");
   const passwordInput = document.querySelector("#password");
@@ -54,6 +55,7 @@
   if (params.get("logout")) {
     try {
       localStorage.removeItem("kaskita_role");
+      localStorage.removeItem("kaskita_login_name");
       sessionStorage.removeItem("kaskita_role");
     } catch (e) {}
   }
@@ -64,13 +66,14 @@
     submitButton.textContent = "Memproses...";
     errorMessage.textContent = "";
 
+    const displayName = nameInput ? nameInput.value.trim() : "";
     const role = roleSelect.value;
     const password = passwordInput.value.trim();
 
     if (role === "pengelola" && !password) {
       errorMessage.textContent = "Masukkan kata sandi pengelola.";
       submitButton.disabled = false;
-      submitButton.textContent = "Masuk";
+      submitButton.textContent = "Masuk Ke Dashboard";
       passwordInput.focus();
       return;
     }
@@ -102,9 +105,14 @@
         }
       }
 
-      // Simpan role di penyimpanan lokal agar langsung aktif
+      // Simpan role dan nama di penyimpanan lokal agar langsung aktif
       localStorage.setItem("kaskita_role", role);
       sessionStorage.setItem("kaskita_role", role);
+      if (displayName) {
+        localStorage.setItem("kaskita_login_name", displayName);
+      } else {
+        localStorage.removeItem("kaskita_login_name");
+      }
 
       // Arahkan ke halaman utama aplikasi
       window.location.replace("index.html");
@@ -114,7 +122,7 @@
         passwordInput.focus();
       }
       submitButton.disabled = false;
-      submitButton.textContent = "Masuk";
+      submitButton.textContent = "Masuk Ke Dashboard";
     }
   });
 })();

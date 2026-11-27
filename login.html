@@ -7,7 +7,7 @@
   <title>Masuk - INFORYZE26</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/css/style.css">
   <script>
     try {
@@ -16,41 +16,52 @@
   </script>
 </head>
 <body class="login-body">
-  <div style="position: absolute; top: 20px; right: 20px;">
-    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ganti mode tema">☾</button>
-  </div>
+  <div class="login-orb login-orb-tr" aria-hidden="true"></div>
+  <div class="login-orb login-orb-bl" aria-hidden="true"></div>
 
   <main class="login-card">
-    <div class="login-brand">
-      <img src="inforyze.jpg" alt="Logo INFORYZE">
-      <div>
-        <div class="brand-name" style="color: var(--text-main);">INFORYZE26</div>
-        <div class="brand-caption" style="color: var(--text-muted);">Sistem Kas & Iuran Angkatan</div>
+    <div class="login-card-content">
+      <div class="login-brand-hero">
+        <img src="inforyze.jpg" alt="Logo INFORYZE">
+        <div class="login-hero-name">INFORYZE</div>
+        <div class="login-hero-caption">Catatan Kas Angkatan</div>
       </div>
+
+      <form id="login-form">
+        <div class="login-inner-panel">
+          <h1 class="login-title">Masuk ke INFORYZE</h1>
+
+          <div class="field-group">
+            <label class="field-label" for="login-name">Nama</label>
+            <input class="input-text login-input" id="login-name" type="text" autocomplete="name" placeholder="Masukkan nama Anda">
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="role">Masuk Sebagai</label>
+            <select class="input-text login-input" id="role" required>
+              <option value="mahasiswa">Mahasiswa</option>
+              <option value="pengelola">Pengelola / Pengurus</option>
+            </select>
+          </div>
+
+          <div class="field-group" id="password-field" hidden>
+            <label class="field-label" for="password">Password</label>
+            <input class="input-text login-input" id="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi pengelola">
+          </div>
+
+          <p class="login-error" id="error-message" role="alert" aria-live="polite"></p>
+        </div>
+
+        <button class="button login-submit-btn" id="submit-btn" type="submit">
+          Masuk Ke Dashboard
+        </button>
+        <p class="login-access-note">Akses khusus anggota INFORYZE'26</p>
+      </form>
     </div>
 
-    <h1 class="login-title">Masuk ke INFORYZE26</h1>
-
-    <form id="login-form">
-      <div class="field-group">
-        <label class="field-label" for="role">Masuk sebagai</label>
-        <select class="input-text" id="role" required>
-          <option value="mahasiswa">Mahasiswa</option>
-          <option value="pengelola">Pengelola / Pengurus</option>
-        </select>
-      </div>
-
-      <div class="field-group" id="password-field" hidden>
-        <label class="field-label" for="password">Password Pengelola</label>
-        <input class="input-text" id="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi pengelola">
-      </div>
-
-      <p class="login-error" id="error-message" role="alert" aria-live="polite"></p>
-
-      <button class="button button-primary" id="submit-btn" type="submit" style="width: 100%; padding: 12px;">
-        Masuk
-      </button>
-    </form>
+    <footer class="login-card-footer">
+      &copy; 2026 INFORYZE'26 &middot; All Rights Reserved
+    </footer>
   </main>
 
   <script src="static/js/login.js"></script>

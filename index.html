@@ -7,7 +7,7 @@
   <title>INFORYZE26 - Pembayaran Kas Angkatan</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Open+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/css/style.css">
   <script>
     try {
@@ -20,65 +20,216 @@
     <!-- Topbar Navigation -->
     <header class="topbar">
       <div class="topbar-inner">
-        <a class="brand" href="index.html">
-          <img class="brand-mark" src="inforyze.jpg" alt="Logo INFORYZE">
-          <div>
-            <div class="brand-name">INFORYZE26</div>
-            <div class="brand-caption">Kas & Iuran Angkatan</div>
-          </div>
-        </a>
-
-        <nav class="top-nav" aria-label="Navigasi utama">
-          <button class="nav-button active" id="topup-tab" type="button">Isi Kas</button>
+        <nav class="top-nav top-nav-left" aria-label="Navigasi utama">
+          <button class="nav-button student-only active" id="student-dash-tab" type="button" hidden>Dashboard</button>
+          <button class="nav-button student-only" id="topup-tab" type="button" hidden>Pembayaran</button>
           <button class="nav-button manager-only" id="dashboard-tab" type="button" hidden>Pemasukan</button>
           <button class="nav-button manager-only" id="expense-tab" type="button" hidden>Pengeluaran</button>
           <button class="nav-button manager-only" id="overall-tab" type="button" hidden>Saldo Keseluruhan</button>
         </nav>
 
+        <a class="brand brand-center" href="index.html">
+          <img class="brand-mark" src="inforyze.jpg" alt="Logo INFORYZE">
+          <div class="brand-text">
+            <div class="brand-name">INFORYZE</div>
+            <div class="brand-caption">Catatan Kas Angkatan</div>
+          </div>
+        </a>
+
         <div class="top-actions">
-          <span class="role-badge" id="role-indicator">Mahasiswa</span>
-
-          <div class="select-wrap" id="class-wrap">
-            <label for="class-select">Pilih Kelas</label>
-            <select id="class-select" aria-label="Pilih kelas"></select>
-          </div>
-
-          <div class="select-wrap" id="period-wrap" hidden>
-            <label for="period-select">Periode</label>
-            <select id="period-select" aria-label="Periode pembayaran"></select>
-          </div>
-
-          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ganti mode tema">☾</button>
-          <button class="button button-small logout-button" id="logout-button" type="button">Keluar</button>
+          <button class="nav-button student-only" id="history-tab" type="button" hidden>Riwayat</button>
+          <button class="nav-button student-only" id="profile-tab" type="button" hidden>Profil</button>
+          <button class="nav-button logout-button" id="logout-button" type="button">Keluar</button>
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ganti mode tema">☀</button>
+          <button class="mobile-menu-btn" id="mobile-menu-btn" type="button" aria-label="Buka Daftar Menu">&#9776;</button>
         </div>
       </div>
     </header>
 
+    <!-- Manager Context Bar (Kelas & Periode) -->
+    <div class="context-bar manager-only" id="context-bar" hidden>
+      <div class="context-bar-inner">
+        <span class="role-badge" id="role-indicator">Mahasiswa</span>
+        <div class="context-controls">
+          <div class="select-wrap" id="class-wrap">
+            <label for="class-select">Pilih Kelas</label>
+            <select id="class-select" aria-label="Pilih kelas"></select>
+          </div>
+          <div class="select-wrap" id="period-wrap">
+            <label for="period-select">Periode</label>
+            <select id="period-select" aria-label="Periode pembayaran"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Container -->
     <main class="page">
-      <!-- 1. Topup / Isi Kas View -->
-      <section class="view-section" id="topup-view" aria-labelledby="topup-title">
+      <!-- 0. Mobile Menu View (Daftar Menu) -->
+      <section class="view-section" id="mobile-menu-view" hidden aria-label="Daftar Menu">
+        <div class="menu-drawer-card">
+          <button class="menu-drawer-item student-only" type="button" data-nav="student-dash">
+            <span class="menu-icon">&#9638;</span>
+            <span>Dashboard</span>
+          </button>
+          <button class="menu-drawer-item student-only" type="button" data-nav="topup">
+            <span class="menu-icon">&#128179;</span>
+            <span>Pembayaran</span>
+          </button>
+          <button class="menu-drawer-item student-only" type="button" data-nav="history">
+            <span class="menu-icon">&#8634;</span>
+            <span>Riwayat</span>
+          </button>
+          <button class="menu-drawer-item student-only" type="button" data-nav="profile">
+            <span class="menu-icon">&#128100;</span>
+            <span>Profil</span>
+          </button>
+          <button class="menu-drawer-item manager-only" type="button" data-nav="dashboard" hidden>
+            <span class="menu-icon">&#9638;</span>
+            <span>Pemasukan</span>
+          </button>
+          <button class="menu-drawer-item manager-only" type="button" data-nav="expense" hidden>
+            <span class="menu-icon">&#128184;</span>
+            <span>Pengeluaran</span>
+          </button>
+          <button class="menu-drawer-item manager-only" type="button" data-nav="overall" hidden>
+            <span class="menu-icon">&#128202;</span>
+            <span>Saldo Keseluruhan</span>
+          </button>
+          <button class="menu-drawer-item" type="button" id="mobile-logout-btn">
+            <span class="menu-icon">&#10140;</span>
+            <span>Keluar</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 1A. Student Dashboard View -->
+      <section class="view-section" id="student-dash-view" hidden aria-labelledby="sd-title">
+        <div class="sd-header">
+          <h1 id="sd-title">Dashboard</h1>
+          <div class="sd-greeting" id="sd-greeting">Halo, Mahasiswa</div>
+          <p class="sd-sub">Semoga harimu menyenangkan dan semangat terus untuk kuliah</p>
+        </div>
+
+        <div class="sd-metrics-4">
+          <div class="sage-card sd-kpi">
+            <div class="sd-kpi-label">Total Pembayaran</div>
+            <div class="sd-kpi-value" id="sd-total-paid">Rp 0</div>
+            <div class="sd-kpi-note" id="sd-tx-count">0 Transaksi Berhasil</div>
+          </div>
+
+          <div class="sage-card sd-kpi">
+            <div class="sd-kpi-label">Tagihan Aktif</div>
+            <div class="sd-kpi-value" id="sd-active-bill">Rp 10.000</div>
+            <div class="sd-kpi-note" id="sd-bill-status">Menunggu Pembayaran</div>
+          </div>
+
+          <div class="sage-card sd-kpi">
+            <div class="sd-kpi-label">Status Pembayaran</div>
+            <div class="sd-kpi-value" id="sd-month-ratio">0 / 6 Bulan</div>
+            <div class="sd-kpi-note" id="sd-status-text">Belum Lunas</div>
+            <div class="sd-progress-track">
+              <div class="sd-progress-fill" id="sd-progress-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="sage-card sd-kpi">
+            <div class="sd-kpi-label">Periode Kas</div>
+            <div class="sd-kpi-value">Fleksibel</div>
+            <div class="sd-kpi-note">Bisa Dibayar Kapan Saja</div>
+          </div>
+        </div>
+
+        <div class="sd-middle-grid">
+          <div class="sage-card sd-status-card">
+            <div class="sd-card-title">Status Pembayaran</div>
+            <div class="sd-donut-wrap" id="sd-donut-box"></div>
+            <div class="sd-legend" id="sd-donut-legend"></div>
+          </div>
+
+          <div class="sage-card sd-bill-card">
+            <div class="sd-card-title center">Informasi Tagihan</div>
+            <div class="sd-bill-rows">
+              <div class="sd-bill-row">
+                <span>Kas Angkatan</span>
+                <strong id="sd-info-dues">Rp 10.000</strong>
+              </div>
+              <div class="sd-bill-row">
+                <span>Periode</span>
+                <strong id="sd-info-period">Fleksibel</strong>
+              </div>
+              <div class="sd-bill-row">
+                <span>Metode Pembayaran</span>
+                <span class="sd-qr-mini" aria-label="QRIS">
+                  <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                    <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                    <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                    <path d="M14 14h3v3h-3zM19 14h2v5h-5v-2M14 19h2v2h-2z"></path>
+                  </svg>
+                </span>
+              </div>
+            </div>
+            <button class="button royal-btn" id="sd-go-pay-btn" type="button" style="width:100%; margin-top:auto;">
+              Pembayaran
+            </button>
+          </div>
+
+          <div class="sage-card sd-recent-card">
+            <div class="sd-card-title center">Pembayaran Terakhir</div>
+            <div class="sd-recent-list" id="sd-recent-list"></div>
+          </div>
+        </div>
+
+        <div class="sd-bottom-grid">
+          <div class="sage-card sd-chart-card">
+            <div class="sd-chart-head">
+              <div class="sd-card-title">Grafik Pembayaran</div>
+              <select class="sage-select" id="sd-chart-range" aria-label="Rentang grafik">
+                <option value="6">6 Bulan Terakhir</option>
+                <option value="12">12 Bulan Terakhir</option>
+              </select>
+            </div>
+            <div class="sd-bar-chart" id="sd-bar-chart"></div>
+          </div>
+
+          <div class="sd-side-col">
+            <div class="sage-card sd-note-card">
+              <div class="sd-card-title">Ringkasan Kelas</div>
+              <p class="sd-note-copy" id="sd-class-summary">Pilih nama Anda di menu Pembayaran atau Riwayat untuk melihat detail transaksi pribadi.</p>
+            </div>
+            <div class="sd-signature">Together We Grow</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 1B. Topup / Pembayaran View -->
+      <section class="view-section" id="topup-view" hidden aria-labelledby="topup-title">
         <div class="welcome-row">
           <div>
-            <div class="eyebrow">Pembayaran Mandiri</div>
-            <h1 id="topup-title">Isi Kas Kelasmu</h1>
-            <p class="welcome-copy">Pilih nama, tentukan nominal, dan lakukan pembayaran kas melalui QRIS.</p>
+            <h1 id="topup-title">Pembayaran</h1>
           </div>
         </div>
 
         <div class="topup-layout">
-          <form class="topup-card" id="topup-form">
+          <form class="sage-card topup-card" id="topup-form">
             <div class="step-header">
               <span class="step-num">1</span>
               <span>Identitas Mahasiswa</span>
             </div>
-            <div class="field-group">
-              <label class="field-label" for="topup-student">Nama Mahasiswa</label>
-              <input class="input-text" id="topup-student" type="text" autocomplete="off" placeholder="Ketik nama untuk mencari..." required>
-              <div class="autocomplete-dropdown" id="autocomplete-list" hidden></div>
+            <div class="topup-identity-grid">
+              <div class="field-group" style="margin-bottom:0;">
+                <label class="field-label" for="topup-student">Nama Mahasiswa</label>
+                <input class="input-text sage-input" id="topup-student" type="text" autocomplete="off" placeholder="Ketik nama untuk mencari..." required>
+                <div class="autocomplete-dropdown" id="autocomplete-list" hidden></div>
+              </div>
+              <div class="field-group" style="margin-bottom:0;">
+                <label class="field-label" for="topup-class-select">Pilih Kelas</label>
+                <select class="input-text sage-select" id="topup-class-select" aria-label="Pilih kelas pembayaran"></select>
+              </div>
             </div>
 
-            <div class="step-header">
+            <div class="step-header" style="margin-top:20px;">
               <span class="step-num">2</span>
               <span>Pilih Nominal Iuran</span>
             </div>
@@ -88,11 +239,11 @@
                 <button class="chip-button selected" type="button" data-amount="10000">Rp 10.000</button>
                 <button class="chip-button" type="button" data-amount="20000">Rp 20.000</button>
                 <button class="chip-button" type="button" data-amount="50000">Rp 50.000</button>
-                <button class="chip-button" type="button" data-amount="custom">Nominal Lain</button>
+                <button class="chip-button" type="button" data-amount="custom">Nominal lain</button>
               </div>
               <div class="custom-amount-box" id="custom-amount-wrap" hidden>
                 <label class="field-label" for="topup-amount" style="margin-top: 10px;">Nominal Kustom (Rp)</label>
-                <input class="input-text" id="topup-amount" type="number" min="1000" step="1000" placeholder="Minimal Rp1.000">
+                <input class="input-text sage-input" id="topup-amount" type="number" min="1000" step="1000" placeholder="Minimal Rp1.000">
               </div>
             </div>
 
@@ -100,21 +251,20 @@
               <span class="step-num">3</span>
               <span>Metode Pembayaran</span>
             </div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">
+            <p class="topup-method-copy">
               Pembayaran menggunakan <strong>QRIS</strong> mendukung semua aplikasi mobile banking dan e-wallet.
             </p>
 
-            <button class="button button-primary" type="submit" style="width: 100%; padding: 12px;">
-              Buat Tagihan QRIS &rarr;
+            <button class="button royal-btn" type="submit" style="width: 100%; padding: 13px;">
+              Buat Tagihan QRIS
             </button>
           </form>
 
-          <aside class="checkout-card" aria-label="Ringkasan pembayaran">
+          <aside class="sage-card checkout-card" aria-label="Ringkasan pembayaran">
             <h2>Ringkasan Pembayaran</h2>
-            <div class="checkout-total-box">
-              <div class="checkout-total-label">Total Pembayaran</div>
-              <div class="checkout-total-val" id="topup-total">Rp 10.000</div>
-            </div>
+            <div class="checkout-total-label">Total Pembayaran</div>
+            <div class="checkout-total-val" id="topup-total">Rp 10.000</div>
+
             <div class="summary-item">
               <span>Kelas:</span>
               <strong id="summary-class">Kelas A</strong>
@@ -127,8 +277,94 @@
               <span>Metode:</span>
               <strong>QRIS</strong>
             </div>
+
+            <div class="qris-preview-box" id="qris-preview-box">
+              <img src="qris.jpeg" alt="QRIS INFORYZE26" loading="lazy">
+            </div>
             <div id="checkout-result" hidden></div>
           </aside>
+        </div>
+      </section>
+
+      <!-- 1C. Student History / Riwayat View -->
+      <section class="view-section" id="history-view" hidden aria-labelledby="history-title">
+        <div class="welcome-row">
+          <div>
+            <h1 id="history-title">Riwayat Pembayaran</h1>
+          </div>
+        </div>
+
+        <div class="hist-top-grid">
+          <div class="sage-card hist-kpi">
+            <div class="sd-kpi-label">Total Transaksi</div>
+            <div class="hist-kpi-value" id="hist-total-count">0</div>
+          </div>
+          <div class="sage-card hist-kpi">
+            <div class="sd-kpi-label">Total Dibayar</div>
+            <div class="hist-kpi-value" id="hist-total-paid">Rp0</div>
+          </div>
+          <div class="hist-filter-col">
+            <div class="field-group" style="margin-bottom:12px;">
+              <label class="field-label" for="hist-student-input">Nama Mahasiswa</label>
+              <input class="input-text sage-input" id="hist-student-input" type="text" placeholder="Cari nama mahasiswa...">
+            </div>
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label" for="hist-class-select">Pilih Kelas</label>
+              <select class="input-text sage-select" id="hist-class-select" aria-label="Pilih kelas riwayat"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="sage-card hist-list-card">
+          <div class="sd-card-title" style="margin-bottom:14px;">Daftar Transaksi</div>
+          <div class="hist-tx-list" id="hist-tx-list"></div>
+        </div>
+      </section>
+
+      <!-- 1D. Student Profile / Profil View -->
+      <section class="view-section" id="profile-view" hidden aria-labelledby="profile-title">
+        <div class="prof-header-row">
+          <div>
+            <h1 id="profile-title">Profil Saya</h1>
+            <p class="sd-sub">Informasi Akun Mahasiswa</p>
+          </div>
+          <div class="prof-avatar-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="52" height="52" fill="currentColor">
+              <path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-4.42 0-8 2.24-8 5v1.5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V19c0-2.76-3.58-5-8-5z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <div class="sage-card prof-banner-card">
+          <div class="prof-banner-name" id="prof-name-banner">Nama Mahasiswa</div>
+          <div class="prof-banner-role" id="prof-role-banner">Mahasiswa INFORYZE'26</div>
+        </div>
+
+        <div class="sage-card prof-details-card">
+          <div class="prof-row">
+            <span class="prof-label">Nama Lengkap</span>
+            <span class="prof-val" id="prof-name">-</span>
+          </div>
+          <div class="prof-row">
+            <span class="prof-label">NPM</span>
+            <span class="prof-val" id="prof-npm">-</span>
+          </div>
+          <div class="prof-row">
+            <span class="prof-label">Program Studi</span>
+            <span class="prof-val">Informatika</span>
+          </div>
+          <div class="prof-row">
+            <span class="prof-label">Fakultas</span>
+            <span class="prof-val">Teknik</span>
+          </div>
+          <div class="prof-row">
+            <span class="prof-label">Kelas</span>
+            <span class="prof-val" id="prof-class">Kelas A</span>
+          </div>
+          <div class="prof-row">
+            <span class="prof-label">No. Telp</span>
+            <span class="prof-val" id="prof-phone">-</span>
+          </div>
         </div>
       </section>
 
