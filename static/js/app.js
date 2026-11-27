@@ -27,33 +27,20 @@
   const expenseForm = document.querySelector("#expense-form");
 
   // Views
-  const mobileMenuView = document.querySelector("#mobile-menu-view");
-  const studentDashView = document.querySelector("#student-dash-view");
   const topupView = document.querySelector("#topup-view");
-  const historyView = document.querySelector("#history-view");
-  const profileView = document.querySelector("#profile-view");
   const dashboardView = document.querySelector("#dashboard-view");
   const expenseView = document.querySelector("#expense-view");
   const overallView = document.querySelector("#overall-view");
 
   // Navigation Tabs
-  const studentDashTab = document.querySelector("#student-dash-tab");
   const topupTab = document.querySelector("#topup-tab");
-  const historyTab = document.querySelector("#history-tab");
-  const profileTab = document.querySelector("#profile-tab");
   const dashboardTab = document.querySelector("#dashboard-tab");
   const expenseTab = document.querySelector("#expense-tab");
   const overallTab = document.querySelector("#overall-tab");
-  const mobileMenuBtn = document.querySelector("#mobile-menu-btn");
-  const mobileLogoutBtn = document.querySelector("#mobile-logout-btn");
 
-  // Topup Form & Synced Selectors
+  // Topup Form Elements
   const topupForm = document.querySelector("#topup-form");
   const topupStudentInput = document.querySelector("#topup-student");
-  const topupClassSelect = document.querySelector("#topup-class-select");
-  const histClassSelect = document.querySelector("#hist-class-select");
-  const histStudentInput = document.querySelector("#hist-student-input");
-  const qrisPreviewBox = document.querySelector("#qris-preview-box");
   const autocompleteList = document.querySelector("#autocomplete-list");
   const customAmountWrap = document.querySelector("#custom-amount-wrap");
   const topupAmountInput = document.querySelector("#topup-amount");
@@ -163,23 +150,14 @@
     }
   };
 
-  // Populate Class Dropdowns
+  // Populate Class Dropdown
   const initClasses = () => {
-    [classSelect, topupClassSelect, histClassSelect].forEach((sel) => {
-      if (!sel) return;
-      sel.innerHTML = "";
-      CLASS_NAMES.forEach((cls) => {
-        const opt = document.createElement("option");
-        opt.value = cls;
-        opt.textContent = `Kelas ${cls}`;
-        sel.appendChild(opt);
-      });
-    });
-  };
-
-  const syncClassSelectors = (cls) => {
-    [classSelect, topupClassSelect, histClassSelect].forEach((sel) => {
-      if (sel && sel.value !== cls) sel.value = cls;
+    classSelect.innerHTML = "";
+    CLASS_NAMES.forEach((cls) => {
+      const opt = document.createElement("option");
+      opt.value = cls;
+      opt.textContent = `Kelas ${cls}`;
+      classSelect.appendChild(opt);
     });
   };
 
@@ -245,31 +223,28 @@
 
   // Switch Active View
   const switchTab = (tabName) => {
-    if (studentDashTab) studentDashTab.classList.toggle("active", tabName === "student-dash");
     topupTab.classList.toggle("active", tabName === "topup");
-    if (historyTab) historyTab.classList.toggle("active", tabName === "history");
-    if (profileTab) profileTab.classList.toggle("active", tabName === "profile");
     dashboardTab.classList.toggle("active", tabName === "dashboard");
     expenseTab.classList.toggle("active", tabName === "expense");
     overallTab.classList.toggle("active", tabName === "overall");
 
-    if (mobileMenuView) mobileMenuView.hidden = tabName !== "mobile-menu";
-    if (studentDashView) studentDashView.hidden = tabName !== "student-dash";
     topupView.hidden = tabName !== "topup";
-    if (historyView) historyView.hidden = tabName !== "history";
-    if (profileView) profileView.hidden = tabName !== "profile";
     dashboardView.hidden = tabName !== "dashboard";
     expenseView.hidden = tabName !== "expense";
     overallView.hidden = tabName !== "overall";
 
-    const contextBar = document.querySelector("#context-bar");
     const classWrap = document.querySelector("#class-wrap");
     const periodWrap = document.querySelector("#period-wrap");
 
-    if (currentRole === "pengelola" && contextBar) {
-      contextBar.hidden = tabName === "mobile-menu";
-      if (classWrap) classWrap.hidden = tabName === "overall";
-      if (periodWrap) periodWrap.hidden = false;
+    if (tabName === "topup") {
+      classWrap.hidden = false;
+      periodWrap.hidden = true;
+    } else if (tabName === "overall") {
+      classWrap.hidden = true;
+      periodWrap.hidden = false;
+    } else {
+      classWrap.hidden = false;
+      periodWrap.hidden = false;
     }
 
     render();
@@ -468,229 +443,6 @@
     } else {
       overallExpenseRows.innerHTML = `<tr><td colspan="4" class="empty-state">Belum ada pengeluaran pada periode ini.</td></tr>`;
     }
-
-    renderStudentViews();
-  };
-
-  // Find active student for Student Dashboard / History / Profile
-  const findActiveStudent = (preferredName) => {
-    const raw = (preferredName ?? topupStudentInput?.value ?? localStorage.getItem("kaskita_login_name") ?? "").trim().toLocaleLowerCase("id-ID");
-    if (!raw) return null;
-    const inCurrent = currentStudents().find((s) => s.name.trim().toLocaleLowerCase("id-ID") === raw || s.name.toLocaleLowerCase("id-ID").includes(raw));
-    if (inCurrent) return { student: inCurrent, className: classSelect.value };
-    for (const cls of CLASS_NAMES) {
-      const found = (state.classes[cls] || []).find((s) => s.name.trim().toLocaleLowerCase("id-ID") === raw || s.name.toLocaleLowerCase("id-ID").includes(raw));
-      if (found) return { student: found, className: cls };
-    }
-    return null;
-  };
-
-  // Render Student Dashboard, History & Profile Views
-  const renderStudentViews = () => {
-    const key = periodSelect.value;
-    const currentClass = classSelect.value;
-    const match = findActiveStudent();
-    const activeStudent = match?.student || null;
-    const activeClass = match?.className || currentClass;
-    const displayName = activeStudent?.name || localStorage.getItem("kaskita_login_name") || "Mahasiswa";
-
-    // Collect all payments for active student (or active class if no student selected yet)
-    const now = new Date();
-    const monthKeys = [];
-    const rangeCount = Number(document.querySelector("#sd-chart-range")?.value || 6);
-    for (let i = rangeCount - 1; i >= 0; i--) {
-      monthKeys.push(monthKey(new Date(now.getFullYear(), now.getMonth() - i, 1)));
-    }
-
-    const collectStudentPayments = (s) => {
-      if (!s?.payments) return [];
-      return Object.entries(s.payments).flatMap(([mKey, list]) =>
-        (list || []).map((p) => ({ ...p, periodKey: mKey, studentName: s.name }))
-      );
-    };
-
-    const classStudents = state.classes[activeClass] || [];
-    const txList = (activeStudent ? collectStudentPayments(activeStudent) : classStudents.flatMap(collectStudentPayments))
-      .sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.time || "").localeCompare(a.time || ""));
-
-    const totalPaidAll = txList.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const paidThisMonth = activeStudent
-      ? studentTotalPaid(activeStudent, key)
-      : classStudents.reduce((sum, s) => sum + studentTotalPaid(s, key), 0);
-    const targetThisMonth = activeStudent ? state.monthlyDues : classStudents.length * state.monthlyDues;
-    const activeBill = activeStudent
-      ? Math.max(0, state.monthlyDues - paidThisMonth)
-      : state.monthlyDues;
-
-    // Dashboard KPIs
-    const greetingEl = document.querySelector("#sd-greeting");
-    if (greetingEl) greetingEl.textContent = `Halo, ${displayName}`;
-    const sdTotalPaid = document.querySelector("#sd-total-paid");
-    if (sdTotalPaid) sdTotalPaid.textContent = formatRupiah(totalPaidAll);
-    const sdTxCount = document.querySelector("#sd-tx-count");
-    if (sdTxCount) sdTxCount.textContent = `${txList.length} Transaksi Berhasil`;
-
-    const sdActiveBill = document.querySelector("#sd-active-bill");
-    if (sdActiveBill) sdActiveBill.textContent = formatRupiah(activeBill);
-    const sdBillStatus = document.querySelector("#sd-bill-status");
-    if (sdBillStatus) sdBillStatus.textContent = activeBill === 0 ? "Sudah Lunas" : "Menunggu Pembayaran";
-
-    const paidMonthsCount = activeStudent
-      ? monthKeys.filter((mk) => studentTotalPaid(activeStudent, mk) >= state.monthlyDues && state.monthlyDues > 0).length
-      : classStudents.filter((s) => studentStatus(s, key) === "paid").length;
-    const totalUnitCount = activeStudent ? rangeCount : Math.max(1, classStudents.length);
-    const ratioPct = Math.min(100, Math.round((paidMonthsCount / totalUnitCount) * 100));
-
-    const sdMonthRatio = document.querySelector("#sd-month-ratio");
-    if (sdMonthRatio) {
-      sdMonthRatio.textContent = activeStudent
-        ? `${paidMonthsCount} / ${rangeCount} Bulan`
-        : `${paidMonthsCount} / ${classStudents.length} Lunas`;
-    }
-    const sdStatusText = document.querySelector("#sd-status-text");
-    if (sdStatusText) {
-      sdStatusText.textContent = ratioPct >= 100 ? "Lunas" : ratioPct > 0 ? "Lunas Sebagian" : "Belum Lunas";
-    }
-    const sdProgressBar = document.querySelector("#sd-progress-bar");
-    if (sdProgressBar) sdProgressBar.style.width = `${ratioPct}%`;
-
-    const sdInfoDues = document.querySelector("#sd-info-dues");
-    if (sdInfoDues) sdInfoDues.textContent = formatRupiah(state.monthlyDues);
-
-    // Donut Ring & Legend
-    const sdDonutBox = document.querySelector("#sd-donut-box");
-    if (sdDonutBox) {
-      const r = 46;
-      const c = 2 * Math.PI * r;
-      const offset = c - (ratioPct / 100) * c;
-      sdDonutBox.innerHTML = `
-        <svg width="120" height="120" viewBox="0 0 120 120" aria-label="Status Pembayaran ${ratioPct}%">
-          <circle cx="60" cy="60" r="${r}" fill="none" stroke="rgba(15,46,89,0.14)" stroke-width="11"></circle>
-          <circle cx="60" cy="60" r="${r}" fill="none" stroke="#285eb0" stroke-width="11"
-            stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}"
-            transform="rotate(-90 60 60)"></circle>
-          <text x="60" y="65" text-anchor="middle" font-size="20" font-weight="700" fill="currentColor">${ratioPct}%</text>
-        </svg>
-      `;
-    }
-
-    const sdDonutLegend = document.querySelector("#sd-donut-legend");
-    if (sdDonutLegend) {
-      const unpaidUnits = Math.max(0, totalUnitCount - paidMonthsCount);
-      const remainingVal = Math.max(0, targetThisMonth - paidThisMonth);
-      sdDonutLegend.innerHTML = `
-        <div class="sd-legend-row">
-          <span class="sd-dot" style="background:#56c22b;"></span>
-          <span>Sudah Bayar</span>
-          <strong>${paidMonthsCount} ${activeStudent ? "Bulan" : "Mhs"}</strong>
-          <span>${formatRupiah(paidThisMonth)}</span>
-        </div>
-        <div class="sd-legend-row">
-          <span class="sd-dot" style="background:#0f2e59;"></span>
-          <span>Belum Bayar</span>
-          <strong>${unpaidUnits} ${activeStudent ? "Bulan" : "Mhs"}</strong>
-          <span>${formatRupiah(remainingVal)}</span>
-        </div>
-      `;
-    }
-
-    // Recent Payments List
-    const sdRecentList = document.querySelector("#sd-recent-list");
-    if (sdRecentList) {
-      const recent = txList.slice(0, 7);
-      sdRecentList.innerHTML = recent.length
-        ? recent.map((tx) => `
-          <div class="sd-tx-row">
-            <div>
-              <div class="sd-tx-title">${escapeHTML(activeStudent ? "Kas Angkatan" : tx.studentName)}</div>
-              <div class="sd-tx-date">${escapeHTML(tx.date || "-")}${tx.time ? ` · ${escapeHTML(tx.time)}` : ""}</div>
-            </div>
-            <div class="sd-tx-right">
-              <span class="sd-tx-amount">${formatRupiah(tx.amount)}</span>
-              <span class="badge-berhasil">Berhasil</span>
-            </div>
-          </div>
-        `).join("")
-        : `<div class="empty-state" style="padding:18px;">Belum ada transaksi tercatat.</div>`;
-    }
-
-    // 6/12-Month Bar Chart
-    const sdBarChart = document.querySelector("#sd-bar-chart");
-    if (sdBarChart) {
-      const monthlyTotals = monthKeys.map((mk) => {
-        const sum = activeStudent
-          ? studentTotalPaid(activeStudent, mk)
-          : classStudents.reduce((acc, s) => acc + studentTotalPaid(s, mk), 0);
-        const [, mNum] = mk.split("-").map(Number);
-        return { label: MONTH_NAMES[mNum - 1].slice(0, 3), total: sum };
-      });
-      const maxVal = Math.max(1, ...monthlyTotals.map((m) => m.total));
-      sdBarChart.innerHTML = monthlyTotals.map((m) => {
-        const hPct = Math.round((m.total / maxVal) * 100);
-        const shortAmt = m.total >= 1000 ? `${Math.round(m.total / 1000)}rb` : m.total;
-        return `
-          <div class="sd-bar-col">
-            <div class="sd-bar-val">${m.total > 0 ? shortAmt : "-"}</div>
-            <div class="sd-bar-track">
-              <div class="sd-bar-fill" style="height: ${hPct}%;"></div>
-            </div>
-            <div class="sd-bar-label">${m.label}</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    const sdClassSummary = document.querySelector("#sd-class-summary");
-    if (sdClassSummary) {
-      sdClassSummary.textContent = activeStudent
-        ? `Menampilkan ringkasan pribadi untuk ${activeStudent.name} (Kelas ${activeClass}).`
-        : `Menampilkan ringkasan Kelas ${activeClass}. Ketik nama Anda di menu Pembayaran atau Riwayat untuk melihat detail pribadi.`;
-    }
-
-    // History View
-    const histQuery = (histStudentInput?.value || "").trim();
-    const histMatch = histQuery ? findActiveStudent(histQuery) : match;
-    const histClass = histClassSelect?.value || currentClass;
-    const histStudents = state.classes[histClass] || [];
-    const histTx = (histMatch?.student
-      ? collectStudentPayments(histMatch.student)
-      : histStudents.flatMap(collectStudentPayments)
-    ).sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.time || "").localeCompare(a.time || ""));
-
-    const histCountEl = document.querySelector("#hist-total-count");
-    if (histCountEl) histCountEl.textContent = String(histTx.length);
-    const histPaidEl = document.querySelector("#hist-total-paid");
-    if (histPaidEl) histPaidEl.textContent = formatRupiah(histTx.reduce((s, p) => s + Number(p.amount || 0), 0));
-
-    const histListEl = document.querySelector("#hist-tx-list");
-    if (histListEl) {
-      histListEl.innerHTML = histTx.length
-        ? histTx.slice(0, 30).map((tx) => `
-          <div class="hist-tx-item">
-            <div>
-              <div class="sd-tx-title" style="font-size:15px;">${escapeHTML(histMatch?.student ? "Kas Angkatan" : tx.studentName)}</div>
-              <div class="sd-tx-date" style="font-size:12px;">${escapeHTML(tx.date || "-")}${tx.time ? ` · ${escapeHTML(tx.time)}` : ""}</div>
-            </div>
-            <div class="hist-tx-right">
-              <strong style="font-size:16px;">${formatRupiah(tx.amount)}</strong>
-              <span class="badge-berhasil">Berhasil</span>
-            </div>
-          </div>
-        `).join("")
-        : `<div class="empty-state">Belum ada riwayat transaksi untuk filter ini.</div>`;
-    }
-
-    // Profile View
-    const profNameBanner = document.querySelector("#prof-name-banner");
-    const profRoleBanner = document.querySelector("#prof-role-banner");
-    const profName = document.querySelector("#prof-name");
-    const profNpm = document.querySelector("#prof-npm");
-    const profClass = document.querySelector("#prof-class");
-    if (profNameBanner) profNameBanner.textContent = displayName;
-    if (profRoleBanner) profRoleBanner.textContent = currentRole === "pengelola" ? "Pengelola INFORYZE'26" : "Mahasiswa INFORYZE'26";
-    if (profName) profName.textContent = displayName;
-    if (profNpm) profNpm.textContent = activeStudent?.npm || "-";
-    if (profClass) profClass.textContent = `Kelas ${activeClass}`;
   };
 
   // Payment History Modal
@@ -797,51 +549,17 @@
 
   // Event Listeners
   const bindEvents = () => {
-    if (studentDashTab) studentDashTab.addEventListener("click", () => switchTab("student-dash"));
     topupTab.addEventListener("click", () => switchTab("topup"));
-    if (historyTab) historyTab.addEventListener("click", () => switchTab("history"));
-    if (profileTab) profileTab.addEventListener("click", () => switchTab("profile"));
     dashboardTab.addEventListener("click", () => switchTab("dashboard"));
     expenseTab.addEventListener("click", () => switchTab("expense"));
     overallTab.addEventListener("click", () => switchTab("overall"));
 
-    if (mobileMenuBtn) {
-      mobileMenuBtn.addEventListener("click", () => {
-        const isMenuOpen = mobileMenuView && !mobileMenuView.hidden;
-        if (isMenuOpen) {
-          switchTab(currentRole === "pengelola" ? "dashboard" : "student-dash");
-        } else {
-          switchTab("mobile-menu");
-        }
-      });
-    }
-
-    document.querySelectorAll(".menu-drawer-item[data-nav]").forEach((btn) => {
-      btn.addEventListener("click", () => switchTab(btn.dataset.nav));
-    });
-
-    if (mobileLogoutBtn) {
-      mobileLogoutBtn.addEventListener("click", () => logoutButton.click());
-    }
-
-    const sdGoPayBtn = document.querySelector("#sd-go-pay-btn");
-    if (sdGoPayBtn) sdGoPayBtn.addEventListener("click", () => switchTab("topup"));
-
-    const sdChartRange = document.querySelector("#sd-chart-range");
-    if (sdChartRange) sdChartRange.addEventListener("change", renderStudentViews);
-
-    const handleClassChange = (newClass) => {
-      syncClassSelectors(newClass);
-      state.selectedClass = newClass;
+    classSelect.addEventListener("change", () => {
+      state.selectedClass = classSelect.value;
       saveState();
       updateAutocomplete();
       render();
-    };
-
-    classSelect.addEventListener("change", () => handleClassChange(classSelect.value));
-    if (topupClassSelect) topupClassSelect.addEventListener("change", () => handleClassChange(topupClassSelect.value));
-    if (histClassSelect) histClassSelect.addEventListener("change", () => handleClassChange(histClassSelect.value));
-    if (histStudentInput) histStudentInput.addEventListener("input", renderStudentViews);
+    });
 
     periodSelect.addEventListener("change", render);
     searchInput.addEventListener("input", render);
@@ -1037,7 +755,6 @@
         </div>
       `;
       checkoutResult.hidden = false;
-      if (qrisPreviewBox) qrisPreviewBox.hidden = true;
       showToast("Tagihan QRIS berhasil dibuat.");
     });
 
@@ -1144,9 +861,7 @@
     document.querySelectorAll(".manager-only").forEach((el) => {
       el.hidden = currentRole !== "pengelola";
     });
-    document.querySelectorAll(".student-only").forEach((el) => {
-      el.hidden = currentRole === "pengelola";
-    });
+    topupTab.hidden = currentRole === "pengelola";
     duesInput.disabled = currentRole !== "pengelola";
 
     // Muat data state (Prioritas: Server -> LocalStorage -> default_state.json)
