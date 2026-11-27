@@ -79,29 +79,39 @@
     }
 
     try {
-      // 1. Coba login ke API backend terlebih dahulu (jika backend aktif)
-      let backendSuccess = false;
-      try {
-        const res = await fetch("api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role, ...(role === "pengelola" ? { password } : {}) })
-        });
+      // 1. Jika Supabase sudah dikonfigurasi, gunakan Supabase Auth
+      if (window.sb) {
+        if (role === "pengelola") {
+          const { error } = await window.sb.auth.signInWithPassword({
+            email: window.SUPABASE_MANAGER_EMAIL || "pengurus@inforyze26.id",
+            password
+          });
+          if (error) {
+            throw new Error("Password tidak sesuai.");
+          }
+        } else {
+          await window.sb.auth.signOut().catch(() => {});
+        }
+      } else {
+        // 2. Fallback: coba login ke API backend Python (jika aktif) atau validasi statis
+        try {
+          const res = await fetch("api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role, ...(role === "pengelola" ? { password } : {}) })
+          });
 
-        if (res.ok) {
-          backendSuccess = true;
-        } else if (res.status === 401) {
-          const payload = await res.json().catch(() => ({}));
-          throw new Error(payload.error || "Password tidak sesuai.");
-        }
-      } catch (networkErr) {
-        // Jika server menolak dengan password salah, teruskan error
-        if (networkErr.message && networkErr.message.includes("Password")) {
-          throw networkErr;
-        }
-        // Jika API tidak ditemukan (misal di GitHub Pages / static host), fallback ke validasi browser:
-        if (role === "pengelola" && password !== "INFORYZE26_PENGURUS") {
-          throw new Error("Password tidak sesuai.");
+          if (!res.ok && res.status === 401) {
+            const payload = await res.json().catch(() => ({}));
+            throw new Error(payload.error || "Password tidak sesuai.");
+          }
+        } catch (networkErr) {
+          if (networkErr.message && networkErr.message.includes("Password")) {
+            throw networkErr;
+          }
+          if (role === "pengelola" && password !== "INFORYZE26_PENGURUS") {
+            throw new Error("Password tidak sesuai.");
+          }
         }
       }
 

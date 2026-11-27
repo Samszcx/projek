@@ -183,13 +183,78 @@
     });
   };
 
+  // Supabase Data Layer
+  const loadStateFromSupabase = async () => {
+    if (!window.sb) return null;
+    const [settingsRes, studentsRes, paymentsRes, expensesRes] = await Promise.all([
+      window.sb.from("app_settings").select("*").eq("key", "monthly_dues").maybeSingle(),
+      window.sb.from("students").select("*").order("name", { ascending: true }),
+      window.sb.from("payments").select("*"),
+      window.sb.from("expenses").select("*")
+    ]);
+
+    if (studentsRes.error) throw studentsRes.error;
+
+    const nextState = {
+      monthlyDues: Number(settingsRes.data?.value ?? 10000) || 10000,
+      selectedClass: state.selectedClass || "A",
+      classes: {},
+      expenses: {}
+    };
+
+    CLASS_NAMES.forEach((cls) => {
+      nextState.classes[cls] = [];
+    });
+
+    const studentMap = new Map();
+    (studentsRes.data || []).forEach((row) => {
+      const studentObj = {
+        id: row.id,
+        name: row.name,
+        npm: row.npm || "",
+        payments: {}
+      };
+      nextState.classes[row.class_name] ||= [];
+      nextState.classes[row.class_name].push(studentObj);
+      studentMap.set(row.id, studentObj);
+    });
+
+    (paymentsRes.data || []).forEach((p) => {
+      const studentObj = studentMap.get(p.student_id);
+      if (!studentObj) return;
+      studentObj.payments[p.period] ||= [];
+      studentObj.payments[p.period].push({
+        id: p.id,
+        amount: Number(p.amount),
+        date: p.date,
+        time: p.time || "",
+        method: p.method || "QRIS",
+        invoiceId: p.invoice_id || undefined
+      });
+    });
+
+    (expensesRes.data || []).forEach((e) => {
+      nextState.expenses[e.class_name] ||= {};
+      nextState.expenses[e.class_name][e.period] ||= [];
+      nextState.expenses[e.class_name][e.period].push({
+        id: e.id,
+        amount: Number(e.amount),
+        note: e.note,
+        date: e.date,
+        time: e.time || ""
+      });
+    });
+
+    return nextState;
+  };
+
   // State Persistence (Dual Mode: localStorage + API bila ada)
   const saveState = async () => {
     try {
       localStorage.setItem("kaskita_state", JSON.stringify(state));
     } catch (e) {}
 
-    if (currentRole === "pengelola") {
+    if (currentRole === "pengelola" && !window.sb) {
       try {
         await apiRequest("api/state", {
           method: "PUT",
@@ -857,10 +922,14 @@
     filterSelect.addEventListener("change", render);
     exportButton.addEventListener("click", exportCSV);
 
-    duesInput.addEventListener("change", () => {
+    duesInput.addEventListener("change", async () => {
       const val = Math.max(0, Number(duesInput.value) || 0);
       state.monthlyDues = val;
       duesInput.value = val;
+      if (window.sb && currentRole === "pengelola") {
+        const { error } = await window.sb.from("app_settings").upsert({ key: "monthly_dues", value: val });
+        if (error) showToast("Gagal menyimpan target iuran ke Supabase.");
+      }
       saveState();
       render();
       showToast("Nominal iuran berhasil diperbarui.");
@@ -871,14 +940,23 @@
       if (btn) openPaymentHistory(btn.dataset.student);
     });
 
-    document.querySelector("#payment-history").addEventListener("click", (e) => {
+    document.querySelector("#payment-history").addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-delete-payment]");
       if (!btn) return;
       const student = currentStudents().find((s) => s.id === activeStudentId);
       if (!student) return;
 
+      const paymentId = btn.dataset.deletePayment;
+      if (window.sb && currentRole === "pengelola") {
+        const { error } = await window.sb.from("payments").delete().eq("id", paymentId);
+        if (error) {
+          showToast("Gagal menghapus catatan pembayaran di Supabase.");
+          return;
+        }
+      }
+
       const key = periodSelect.value;
-      student.payments[key] = paymentsFor(student, key).filter((p) => p.id !== btn.dataset.deletePayment);
+      student.payments[key] = paymentsFor(student, key).filter((p) => p.id !== paymentId);
       if (!student.payments[key].length) delete student.payments[key];
 
       saveState();
@@ -893,7 +971,7 @@
       document.querySelector("#expense-amount").focus();
     });
 
-    expenseForm.addEventListener("submit", (e) => {
+    expenseForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const amount = Number(document.querySelector("#expense-amount").value);
       const note = document.querySelector("#expense-note").value.trim();
@@ -904,12 +982,29 @@
       const timeStr = now.toTimeString().slice(0, 5);
       const cls = classSelect.value;
       const period = periodSelect.value;
+      const expId = globalThis.crypto?.randomUUID?.() || `${Date.now()}`;
+
+      if (window.sb && currentRole === "pengelola") {
+        const { error } = await window.sb.from("expenses").insert({
+          id: expId,
+          class_name: cls,
+          period,
+          amount,
+          note,
+          date: dateStr,
+          time: timeStr
+        });
+        if (error) {
+          showToast("Gagal menyimpan pengeluaran ke Supabase.");
+          return;
+        }
+      }
 
       state.expenses ||= {};
       state.expenses[cls] ||= {};
       state.expenses[cls][period] ||= [];
       state.expenses[cls][period].push({
-        id: globalThis.crypto?.randomUUID?.() || `${Date.now()}`,
+        id: expId,
         amount,
         note,
         date: dateStr,
@@ -922,7 +1017,7 @@
       showToast("Pengeluaran berhasil dicatat.");
     });
 
-    document.querySelector("#expense-rows").addEventListener("click", (e) => {
+    document.querySelector("#expense-rows").addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-delete-expense]");
       if (!btn) return;
       const cls = classSelect.value;
@@ -930,7 +1025,16 @@
       const classExpenses = state.expenses?.[cls]?.[period];
       if (!classExpenses) return;
 
-      state.expenses[cls][period] = classExpenses.filter((item) => item.id !== btn.dataset.deleteExpense);
+      const expId = btn.dataset.deleteExpense;
+      if (window.sb && currentRole === "pengelola") {
+        const { error } = await window.sb.from("expenses").delete().eq("id", expId);
+        if (error) {
+          showToast("Gagal menghapus pengeluaran di Supabase.");
+          return;
+        }
+      }
+
+      state.expenses[cls][period] = classExpenses.filter((item) => item.id !== expId);
       if (!state.expenses[cls][period].length) delete state.expenses[cls][period];
 
       saveState();
@@ -997,29 +1101,57 @@
       }
 
       let invoice = null;
-      try {
-        const response = await apiRequest("api/invoices", {
-          method: "POST",
-          body: JSON.stringify({
-            className: classSelect.value,
-            studentId: student.id,
-            amount,
-            period: monthKey(new Date())
-          })
-        });
-        invoice = response.invoice;
-      } catch (err) {
-        // Fallback untuk hosting statis (GitHub Pages / Vercel)
-        invoice = {
+      if (window.sb) {
+        const draftInvoice = {
           id: "KAS" + Math.random().toString(36).substring(2, 8).toUpperCase(),
-          className: classSelect.value,
-          studentId: student.id,
-          studentName: student.name,
+          class_name: classSelect.value,
+          student_id: student.id,
+          student_name: student.name,
           period: monthKey(new Date()),
-          amount: amount,
+          amount,
           method: "QRIS",
           status: "pending"
         };
+        const { error } = await window.sb.from("invoices").insert(draftInvoice);
+        if (error) {
+          showToast("Gagal membuat tagihan di Supabase.");
+          return;
+        }
+        invoice = {
+          id: draftInvoice.id,
+          className: draftInvoice.class_name,
+          studentId: draftInvoice.student_id,
+          studentName: draftInvoice.student_name,
+          period: draftInvoice.period,
+          amount: draftInvoice.amount,
+          method: "QRIS",
+          status: "pending"
+        };
+      } else {
+        try {
+          const response = await apiRequest("api/invoices", {
+            method: "POST",
+            body: JSON.stringify({
+              className: classSelect.value,
+              studentId: student.id,
+              amount,
+              period: monthKey(new Date())
+            })
+          });
+          invoice = response.invoice;
+        } catch (err) {
+          // Fallback untuk hosting statis (GitHub Pages / Vercel)
+          invoice = {
+            id: "KAS" + Math.random().toString(36).substring(2, 8).toUpperCase(),
+            className: classSelect.value,
+            studentId: student.id,
+            studentName: student.name,
+            period: monthKey(new Date()),
+            amount: amount,
+            method: "QRIS",
+            status: "pending"
+          };
+        }
       }
 
       pendingInvoice = { ...invoice, paid: false };
@@ -1057,23 +1189,44 @@
       if (e.target.id !== "confirm-payment-btn" && !e.target.closest("#confirm-payment-btn")) return;
       if (!pendingInvoice || pendingInvoice.paid) return;
 
-      try {
-        const response = await apiRequest(`api/invoices/${encodeURIComponent(pendingInvoice.id)}/confirm`, {
-          method: "POST",
-          body: "{}"
-        });
-        state = response.state;
-      } catch (err) {
-        // Fallback untuk hosting statis: catat pembayaran langsung ke data kelas
+      if (window.sb) {
         const paidAt = new Date();
         const dateStr = paidAt.toISOString().slice(0, 10);
         const timeStr = paidAt.toTimeString().slice(0, 5);
-        const student = currentStudents().find((s) => s.id === pendingInvoice.studentId);
+        const paymentId = globalThis.crypto?.randomUUID?.() || `${Date.now()}`;
+
+        const { error: invErr } = await window.sb
+          .from("invoices")
+          .update({ status: "confirmed_demo" })
+          .eq("id", pendingInvoice.id);
+        if (invErr) {
+          showToast("Gagal memverifikasi tagihan di Supabase.");
+          return;
+        }
+
+        const { error: payErr } = await window.sb.from("payments").insert({
+          id: paymentId,
+          student_id: pendingInvoice.studentId,
+          period: pendingInvoice.period,
+          amount: pendingInvoice.amount,
+          date: dateStr,
+          time: timeStr,
+          method: "QRIS",
+          invoice_id: pendingInvoice.id
+        });
+        if (payErr) {
+          showToast("Gagal mencatat pembayaran di Supabase.");
+          return;
+        }
+
+        const student = (state.classes[pendingInvoice.className] || currentStudents()).find(
+          (s) => s.id === pendingInvoice.studentId
+        );
         if (student) {
           student.payments ||= {};
           student.payments[pendingInvoice.period] ||= [];
           student.payments[pendingInvoice.period].push({
-            id: globalThis.crypto?.randomUUID?.() || `${Date.now()}`,
+            id: paymentId,
             amount: pendingInvoice.amount,
             date: dateStr,
             time: timeStr,
@@ -1082,6 +1235,33 @@
           });
         }
         saveState();
+      } else {
+        try {
+          const response = await apiRequest(`api/invoices/${encodeURIComponent(pendingInvoice.id)}/confirm`, {
+            method: "POST",
+            body: "{}"
+          });
+          state = response.state;
+        } catch (err) {
+          // Fallback untuk hosting statis: catat pembayaran langsung ke data kelas
+          const paidAt = new Date();
+          const dateStr = paidAt.toISOString().slice(0, 10);
+          const timeStr = paidAt.toTimeString().slice(0, 5);
+          const student = currentStudents().find((s) => s.id === pendingInvoice.studentId);
+          if (student) {
+            student.payments ||= {};
+            student.payments[pendingInvoice.period] ||= [];
+            student.payments[pendingInvoice.period].push({
+              id: globalThis.crypto?.randomUUID?.() || `${Date.now()}`,
+              amount: pendingInvoice.amount,
+              date: dateStr,
+              time: timeStr,
+              method: "QRIS",
+              invoiceId: pendingInvoice.id
+            });
+          }
+          saveState();
+        }
       }
 
       pendingInvoice.paid = true;
@@ -1103,6 +1283,9 @@
     logoutButton.addEventListener("click", async () => {
       logoutButton.disabled = true;
       logoutButton.textContent = "Keluar...";
+      if (window.sb) {
+        await window.sb.auth.signOut().catch(() => {});
+      }
       try {
         await apiRequest("api/logout", {
           method: "POST",
@@ -1130,17 +1313,27 @@
 
     let sessionRole = null;
 
-    // 1. Cek sesi dari server jika ada backend yang berjalan
-    try {
-      const session = await apiRequest("api/session");
-      if (session && session.role) {
-        sessionRole = session.role;
+    if (window.sb) {
+      const { data: authData } = await window.sb.auth.getSession();
+      const storedRole = sessionStorage.getItem("kaskita_role") || localStorage.getItem("kaskita_role");
+      if (authData?.session) {
+        sessionRole = "pengelola";
+      } else if (storedRole === "mahasiswa") {
+        sessionRole = "mahasiswa";
       }
-    } catch (err) {}
+    } else {
+      // 1. Cek sesi dari server jika ada backend yang berjalan
+      try {
+        const session = await apiRequest("api/session");
+        if (session && session.role) {
+          sessionRole = session.role;
+        }
+      } catch (err) {}
 
-    // 2. Jika tidak ada backend (misal GitHub Pages), ambil dari browser storage
-    if (!sessionRole) {
-      sessionRole = sessionStorage.getItem("kaskita_role") || localStorage.getItem("kaskita_role");
+      // 2. Jika tidak ada backend (misal GitHub Pages), ambil dari browser storage
+      if (!sessionRole) {
+        sessionRole = sessionStorage.getItem("kaskita_role") || localStorage.getItem("kaskita_role");
+      }
     }
 
     // 3. Jika belum login, alihkan ke login.html
@@ -1161,14 +1354,24 @@
     });
     duesInput.disabled = currentRole !== "pengelola";
 
-    // Muat data state (Prioritas: Server -> LocalStorage -> default_state.json)
+    // Muat data state (Prioritas: Supabase -> Server -> LocalStorage -> default_state.json)
     let loadedState = null;
-    try {
-      const stateResponse = await apiRequest("api/state");
-      if (stateResponse && stateResponse.state) {
-        loadedState = stateResponse.state;
+    if (window.sb) {
+      try {
+        loadedState = await loadStateFromSupabase();
+      } catch (err) {
+        showToast("Gagal memuat data dari Supabase, memakai data cadangan.");
       }
-    } catch (err) {}
+    }
+
+    if (!loadedState) {
+      try {
+        const stateResponse = await apiRequest("api/state");
+        if (stateResponse && stateResponse.state) {
+          loadedState = stateResponse.state;
+        }
+      } catch (err) {}
+    }
 
     if (!loadedState) {
       try {
